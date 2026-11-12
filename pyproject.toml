@@ -1,3 +1,14 @@
+[project]
+name = "elaris"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=5.0",
+    "psycopg[binary]>=3.1",
+    "whitenoise>=6.6",
+    "gunicorn>=22.0",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"

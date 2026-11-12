@@ -1,0 +1,16 @@
+{% load static %}
+<header class="border-b border-ink/10 bg-cream/80">
+  <div class="container-page relative flex items-center justify-between gap-4 py-4 sm:py-5">
+    <a href="{% url 'core:landing' %}" class="inline-flex shrink-0 items-center" aria-label="Elaris, inicio">
+      <img src="{% static 'brand/logo-header.png' %}" alt="Elaris" class="h-8 w-auto sm:h-9">
+    </a>
+    <nav class="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-7 md:flex" aria-label="Secciones de Elaris">
+      <a href="{% url 'core:landing' %}#como-funciona" class="text-sm font-medium text-ink-soft transition hover:text-ink">Cómo funciona</a>
+      <a href="{% url 'core:landing' %}#funciones" class="text-sm font-medium text-ink-soft transition hover:text-ink">Funciones</a>
+    </nav>
+    <nav class="flex items-center gap-1 sm:gap-3" aria-label="Cuenta">
+      <a href="{% url 'accounts:login' %}" class="btn-ghost px-3 text-xs sm:px-4 sm:text-sm">Ingresar</a>
+      <a href="{% url 'accounts:signup' %}" class="btn-primary px-4 py-2.5 text-xs sm:px-5 sm:text-sm">Crear cuenta</a>
+    </nav>
+  </div>
+</header>

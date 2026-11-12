@@ -1,0 +1,81 @@
+{% load static %}
+{% if business %}
+  <aside class="app-sidebar fixed inset-y-0 left-0 z-40 flex-col overflow-y-auto border-r border-ink/10 bg-white/60 px-5 py-6 backdrop-blur-xl" aria-label="Panel de navegación">
+    <a href="{% url 'businesses:dashboard' %}" class="inline-flex shrink-0 items-center" aria-label="Elaris, panel">
+      <img src="{% static 'brand/logo-header.png' %}" alt="Elaris" class="h-10 w-auto">
+    </a>
+
+    <div class="mt-8 rounded-[1.5rem] border border-ink/10 bg-cream/70 p-4">
+      <p class="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-ink-soft/70">Tu espacio</p>
+      <p class="mt-1 truncate font-display text-2xl leading-none text-ink-deep">{{ business.name }}</p>
+    </div>
+
+    <a href="{% url 'agenda:appointment_create' %}" class="btn-primary mt-4 w-full px-4 py-3">
+      <span aria-hidden="true">+</span> Nuevo turno
+    </a>
+
+    <div class="mt-7 flex-1">
+      {% include "partials/app_nav.html" %}
+    </div>
+
+    <div class="mt-6 border-t border-ink/10 pt-4">
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="sidebar-link w-full">
+          <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 8l-4 4 4 4M6 12h10"/>
+          </svg>
+          <span>Salir</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+{% endif %}
+
+<header class="app-mobile-header sticky top-0 z-30 border-b border-ink/10 bg-cream/90 backdrop-blur">
+  <div class="container-page flex min-h-16 items-center justify-between gap-3 py-3">
+    <a href="{% if business %}{% url 'businesses:dashboard' %}{% else %}{% url 'core:landing' %}{% endif %}" class="inline-flex shrink-0 items-center" aria-label="Elaris">
+      <img src="{% static 'brand/logo-header.png' %}" alt="Elaris" class="h-8 w-auto">
+    </a>
+
+    <div class="flex items-center gap-2">
+      {% if business %}
+        <span class="hidden max-w-[10rem] truncate text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-ink-soft md:block">{{ business.name }}</span>
+        <a href="{% url 'agenda:appointment_create' %}" class="btn-primary hidden px-4 py-2 text-xs sm:inline-flex">+ Nuevo turno</a>
+
+        <details class="group relative" data-app-menu>
+          <summary class="btn-secondary cursor-pointer list-none px-4 py-2 text-xs [&::-webkit-details-marker]:hidden">
+            Menú
+            <svg class="menu-chevron h-3.5 w-3.5 transition" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m5 7 5 5 5-5"/>
+            </svg>
+          </summary>
+
+          <div class="fixed left-4 top-20 z-50 max-h-[calc(100dvh-6rem)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[1.75rem] border border-ink/10 bg-cream p-3 shadow-2xl">
+            <div class="rounded-2xl bg-white/60 p-3">
+              <p class="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-ink-soft/70">Tu espacio</p>
+              <p class="mt-1 truncate font-display text-xl leading-none text-ink-deep">{{ business.name }}</p>
+            </div>
+
+            <div class="mt-3">
+              {% include "partials/app_nav.html" %}
+            </div>
+
+            <div class="mt-3 border-t border-ink/10 pt-3">
+              <a href="{% url 'agenda:appointment_create' %}" class="btn-primary mb-2 w-full">+ Nuevo turno</a>
+              <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-ghost w-full px-4 py-2 text-sm">Salir</button>
+              </form>
+            </div>
+          </div>
+        </details>
+      {% else %}
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-ghost px-3 py-2 text-xs sm:text-sm">Salir</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</header>

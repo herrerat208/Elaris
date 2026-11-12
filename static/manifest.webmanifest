@@ -1,0 +1,26 @@
+{
+  "name": "Elaris · turnos de belleza",
+  "short_name": "Elaris",
+  "description": "El espacio de gestión para profesionales de la belleza.",
+  "lang": "es-AR",
+  "start_url": "/panel/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf5ec",
+  "theme_color": "#faf5ec",
+  "icons": [
+    {
+      "src": "/static/brand/favicon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+{% load elaris %}
+
+{% block title %}Ingresos · Elaris{% endblock %}
+
+{% block body %}
+  {% include "partials/app_header.html" %}
+  {% include "partials/messages.html" %}
+
+  <main class="container-page pb-16 pt-8 sm:pt-10">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="eyebrow">Resumen</p>
+        <h1 class="mt-2 font-display text-4xl leading-none sm:text-5xl">Ingresos</h1>
+        <p class="mt-3 max-w-xl text-sm leading-6 text-ink-soft">
+          Lo que facturaste con los turnos completados. Los turnos cancelados o con ausencia no se suman.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <a href="?mes={{ prev_month_param }}" class="btn-secondary px-4 py-2 text-xs">← Mes anterior</a>
+        <span class="chip">{{ month_start|date:"F Y"|capfirst }}</span>
+        <a href="?mes={{ next_month_param }}" class="btn-secondary px-4 py-2 text-xs">Mes siguiente →</a>
+      </div>
+    </div>
+
+    <div class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article class="card p-5">
+        <p class="eyebrow">Ingresos</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ income_total|ars }}</p>
+        <p class="mt-2 text-xs text-ink-soft">{{ completed_count }} turno{{ completed_count|pluralize }} completado{{ completed_count|pluralize }}</p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">Ticket promedio</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ average_ticket|ars }}</p>
+        <p class="mt-2 text-xs text-ink-soft">por turno con precio</p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">Cancelados</p>
+        <p class="stat-value">{{ cancelled_count }}</p>
+        <p class="mt-2 text-xs text-ink-soft">no suman ingresos</p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">No asistió</p>
+        <p class="stat-value">{{ no_show_count }}</p>
+        <p class="mt-2 text-xs text-ink-soft">no suman ingresos</p>
+      </article>
+    </div>
+
+    {% if missing_price_count %}
+      <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+        Hay {{ missing_price_count }} turno{{ missing_price_count|pluralize }} completado{{ missing_price_count|pluralize }} sin precio. No suma{{ missing_price_count|pluralize }} al total.
+      </div>
+    {% endif %}
+
+    <div class="mt-6 grid gap-5 lg:grid-cols-2">
+      <section class="card p-6">
+        <p class="eyebrow">Por rubro</p>
+        <h2 class="mt-1 font-display text-3xl">Cómo se reparte</h2>
+        {% if by_specialty %}
+          <div class="mt-5 space-y-3">
+            {% for row in by_specialty %}
+              <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink/10 px-4 py-3">
+                <div>
+                  <p class="text-sm font-semibold text-ink-deep">{{ row.specialty_name|default:"Sin rubro" }}</p>
+                  <p class="mt-0.5 text-xs text-ink-soft">{{ row.count }} turno{{ row.count|pluralize }}</p>
+                </div>
+                <p class="font-semibold text-ink-deep">{{ row.total|ars }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mt-4 text-sm text-ink-soft">Todavía no hay turnos completados este mes.</p>
+        {% endif %}
+      </section>
+
+      <section class="card p-6">
+        <p class="eyebrow">Por servicio</p>
+        <h2 class="mt-1 font-display text-3xl">Los que más suman</h2>
+        {% if by_service %}
+          <div class="mt-5 space-y-3">
+            {% for row in by_service %}
+              <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink/10 px-4 py-3">
+                <div>
+                  <p class="text-sm font-semibold text-ink-deep">{{ row.service_name }}</p>
+                  <p class="mt-0.5 text-xs text-ink-soft">{{ row.count }} turno{{ row.count|pluralize }}</p>
+                </div>
+                <p class="font-semibold text-ink-deep">{{ row.total|ars }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mt-4 text-sm text-ink-soft">Cuando completes turnos, vas a ver el detalle por servicio.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <section class="card mt-5 p-6">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="eyebrow">Detalle</p>
+          <h2 class="mt-1 font-display text-3xl">Turnos completados</h2>
+        </div>
+        <a href="{% url 'agenda:week' %}" class="link text-xs">Ver agenda</a>
+      </div>
+
+      {% if completed_list %}
+        <div class="mt-5 space-y-3 md:hidden">
+          {% for appointment in completed_list %}
+            <a href="{% url 'agenda:appointment_detail' appointment.pk %}" class="block rounded-2xl border border-ink/10 p-4 transition hover:border-ink/20 hover:bg-celeste-mist/30">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-ink-soft">
+                    {{ appointment.start_at|date:"d/m/Y" }} · {{ appointment.start_at|date:"H:i" }}
+                  </p>
+                  <p class="mt-1 text-sm font-semibold break-words text-ink-deep">{{ appointment.client.name }}</p>
+                  <p class="mt-0.5 text-xs break-words text-ink-soft">{{ appointment.service_name }}</p>
+                </div>
+                <p class="shrink-0 text-sm font-semibold text-ink-deep">{{ appointment.price_display }}</p>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+        <div class="mt-5 hidden overflow-x-auto md:block">
+          <table class="w-full min-w-[40rem] text-left text-sm">
+            <thead>
+              <tr class="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink-soft">
+                <th class="pb-3 pr-4 font-semibold">Fecha</th>
+                <th class="pb-3 pr-4 font-semibold">Cliente</th>
+                <th class="pb-3 pr-4 font-semibold">Servicio</th>
+                <th class="pb-3 text-right font-semibold">Precio</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ink/10">
+              {% for appointment in completed_list %}
+                <tr class="align-middle">
+                  <td class="py-3 pr-4 text-ink-soft">{{ appointment.start_at|date:"d/m/Y" }} · {{ appointment.start_at|date:"H:i" }}</td>
+                  <td class="py-3 pr-4">
+                    <a href="{% url 'agenda:appointment_detail' appointment.pk %}" class="font-semibold text-ink-deep hover:underline">{{ appointment.client.name }}</a>
+                  </td>
+                  <td class="py-3 pr-4 text-ink-soft">{{ appointment.service_name }}</td>
+                  <td class="py-3 text-right font-semibold text-ink-deep">{{ appointment.price_display }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="mt-5 rounded-2xl border border-dashed border-ink/15 p-8 text-center">
+          <p class="text-sm text-ink-soft">No hay turnos completados en {{ month_start|date:"F Y" }}.</p>
+          <a href="{% url 'agenda:week' %}" class="btn-secondary mt-4 px-4 py-2 text-xs">Ir a la agenda</a>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+{% endblock %}

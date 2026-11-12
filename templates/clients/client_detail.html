@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ client.name }} · Elaris{% endblock %}
+
+{% block body %}
+  {% include "partials/app_header.html" %}
+  {% include "partials/messages.html" %}
+
+  <main class="container-page pb-16 pt-8">
+    <a href="{% url 'clients:list' %}" class="inline-flex items-center gap-2 text-xs font-semibold text-ink-soft transition hover:text-ink">
+      <span aria-hidden="true">←</span> Volver a clientes
+    </a>
+
+    <div class="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div class="flex items-start gap-4">
+        <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-celeste-soft font-display text-3xl text-ink-deep">
+          {{ client.name|slice:":1"|upper }}
+        </span>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <p class="eyebrow">Ficha de cliente</p>
+            {% if client.is_active %}
+              <span class="badge badge-completed">Activo</span>
+            {% else %}
+              <span class="badge badge-cancelled">Archivado</span>
+            {% endif %}
+          </div>
+          <h1 class="mt-2 font-display text-4xl leading-none sm:text-5xl">{{ client.name }}</h1>
+          <p class="mt-2 text-xs text-ink-soft">En tu espacio desde {{ client.created_at|date:"d/m/Y" }}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'clients:edit' client.pk %}" class="btn-secondary">Editar datos</a>
+        {% if client.is_active %}
+          <a href="{% url 'agenda:appointment_create' %}?cliente={{ client.pk }}" class="btn-primary">+ Nuevo turno</a>
+          <form method="post" action="{% url 'clients:archive' client.pk %}" data-confirm="¿Archivar a {{ client.name }}? Su historial va a quedar guardado.">
+            {% csrf_token %}
+            <button type="submit" class="btn-ghost text-xs text-ink-soft">Archivar</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'clients:activate' client.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary">Reactivar</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="mt-8 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+      <div class="space-y-5">
+        <section class="card p-6">
+          <h2 class="font-display text-2xl">Contacto</h2>
+          <div class="mt-4 space-y-3 text-sm">
+            {% if client.phone %}
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">Teléfono / WhatsApp</p>
+                <a href="tel:{{ client.phone_digits }}" class="mt-1 block font-semibold text-ink-deep">{{ client.phone }}</a>
+              </div>
+            {% endif %}
+            {% if client.email %}
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">Email</p>
+                <a href="mailto:{{ client.email }}" class="mt-1 block break-all font-semibold text-ink-deep">{{ client.email }}</a>
+              </div>
+            {% endif %}
+            {% if not client.phone and not client.email %}
+              <p class="text-sm leading-6 text-ink-soft">Todavía no cargaste datos de contacto.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="card p-6">
+          <h2 class="font-display text-2xl">Notas</h2>
+          {% if client.notes %}
+            <p class="mt-4 whitespace-pre-line text-sm leading-6 text-ink-soft">{{ client.notes }}</p>
+          {% else %}
+            <p class="mt-4 text-sm leading-6 text-ink-soft">Sin notas por ahora. Podés guardar preferencias, alergias o detalles importantes.</p>
+          {% endif %}
+        </section>
+      </div>
+
+      <div class="space-y-5">
+        <section class="card p-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="eyebrow">Próximos</p>
+              <h2 class="mt-1 font-display text-2xl">Turnos agendados</h2>
+            </div>
+            {% if client.is_active %}
+              <a href="{% url 'agenda:appointment_create' %}?cliente={{ client.pk }}" class="link text-xs">Agendar</a>
+            {% endif %}
+          </div>
+
+          <div class="mt-4 space-y-2">
+            {% for appointment in upcoming %}
+              <a href="{% url 'agenda:appointment_detail' appointment.pk %}" class="block rounded-2xl border border-ink/10 p-4 transition hover:border-celeste hover:bg-celeste-mist">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <p class="text-xs font-bold uppercase tracking-[0.14em] text-ink-soft">{{ appointment.start_at|date:"D d/m" }} · {{ appointment.start_at|date:"H:i" }}–{{ appointment.end_at|date:"H:i" }}</p>
+                  <span class="badge {{ appointment.status_badge_class }}">{{ appointment.get_status_display }}</span>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p class="font-semibold text-ink-deep">{{ appointment.service_name }}</p>
+                  <p class="text-xs text-ink-soft">{{ appointment.price_display }}</p>
+                </div>
+              </a>
+            {% empty %}
+              <div class="rounded-2xl border border-dashed border-ink/15 p-5 text-center">
+                <p class="text-sm text-ink-soft">No tiene turnos agendados.</p>
+                {% if client.is_active %}
+                  <a href="{% url 'agenda:appointment_create' %}?cliente={{ client.pk }}" class="btn-secondary mt-3 px-4 py-2 text-xs">Agendar turno</a>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="card p-6">
+          <p class="eyebrow">Historial</p>
+          <h2 class="mt-1 font-display text-2xl">Turnos anteriores</h2>
+
+          <div class="mt-4 divide-y divide-ink/10">
+            {% for appointment in history %}
+              <a href="{% url 'agenda:appointment_detail' appointment.pk %}" class="flex flex-wrap items-center justify-between gap-3 py-3 transition hover:text-ink-deep">
+                <div>
+                  <p class="text-sm font-semibold">{{ appointment.start_at|date:"d/m/Y" }} · {{ appointment.start_at|date:"H:i" }}</p>
+                  <p class="mt-0.5 text-xs text-ink-soft">{{ appointment.service_name }} · {{ appointment.price_display }}</p>
+                </div>
+                <span class="badge {{ appointment.status_badge_class }}">{{ appointment.get_status_display }}</span>
+              </a>
+            {% empty %}
+              <p class="py-3 text-sm text-ink-soft">Todavía no tiene turnos en su historial.</p>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+{% endblock %}

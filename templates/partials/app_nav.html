@@ -1,0 +1,96 @@
+{% load static %}
+<nav aria-label="Secciones del panel" class="space-y-1">
+  <p class="px-4 pb-2 pt-1 text-[0.62rem] font-bold uppercase tracking-[0.2em] text-ink-soft/70">Día a día</p>
+
+  <a
+    href="{% url 'businesses:dashboard' %}"
+    class="sidebar-link {% if request.path == '/panel/' %}sidebar-link-active{% endif %}"
+    {% if request.path == '/panel/' %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9Z"/>
+    </svg>
+    <span>Panel</span>
+  </a>
+
+  <a
+    href="{% url 'agenda:week' %}"
+    class="sidebar-link {% if '/panel/agenda/' in request.path %}sidebar-link-active{% endif %}"
+    {% if '/panel/agenda/' in request.path %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/>
+    </svg>
+    <span>Agenda</span>
+  </a>
+
+  <a
+    href="{% url 'agenda:reminders' %}"
+    class="sidebar-link {% if request.path == '/panel/recordatorios/' %}sidebar-link-active{% endif %}"
+    {% if request.path == '/panel/recordatorios/' %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>
+    </svg>
+    <span>Recordatorios</span>
+  </a>
+
+  <a
+    href="{% url 'clients:list' %}"
+    class="sidebar-link {% if '/panel/clientes/' in request.path %}sidebar-link-active{% endif %}"
+    {% if '/panel/clientes/' in request.path %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    <span>Clientes</span>
+  </a>
+
+  <p class="px-4 pb-2 pt-5 text-[0.62rem] font-bold uppercase tracking-[0.2em] text-ink-soft/70">Gestión</p>
+
+  <a
+    href="{% url 'businesses:service_list' %}"
+    class="sidebar-link {% if '/panel/servicios/' in request.path %}sidebar-link-active{% endif %}"
+    {% if '/panel/servicios/' in request.path %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3ZM5 16.5 6 19l2.5 1-2.5 1L5 23.5 4 21l-2.5-1L4 19l1-2.5Z"/>
+    </svg>
+    <span>Servicios</span>
+  </a>
+
+  <a
+    href="{% url 'agenda:schedule' %}"
+    class="sidebar-link {% if '/panel/horarios/' in request.path %}sidebar-link-active{% endif %}"
+    {% if '/panel/horarios/' in request.path %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/>
+    </svg>
+    <span>Horarios</span>
+  </a>
+
+  <a
+    href="{% url 'agenda:income' %}"
+    class="sidebar-link {% if '/panel/ingresos/' in request.path %}sidebar-link-active{% endif %}"
+    {% if '/panel/ingresos/' in request.path %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3"/>
+    </svg>
+    <span>Ingresos</span>
+  </a>
+
+  <a
+    href="{% url 'businesses:settings' %}"
+    class="sidebar-link {% if '/panel/configuracion/' in request.path %}sidebar-link-active{% endif %}"
+    {% if '/panel/configuracion/' in request.path %}aria-current="page"{% endif %}
+  >
+    <svg class="h-5 w-5 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.37a1.7 1.7 0 0 0-1 .63 1.7 1.7 0 0 0-.35 1.05V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-.63-1 1.7 1.7 0 0 0-1.05-.35H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-.63 1.7 1.7 0 0 0 .35-1.05V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9c.14.37.36.7.63 1 .3.26.67.4 1.05.35H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/>
+    </svg>
+    <span>Configuración</span>
+  </a>
+</nav>

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if client %}Editar {{ client.name }}{% else %}Nuevo cliente{% endif %} · Elaris{% endblock %}
+
+{% block body %}
+  {% include "partials/app_header.html" %}
+  {% include "partials/messages.html" %}
+
+  <main class="container-page pb-16 pt-8">
+    <div class="mx-auto max-w-2xl">
+      <a href="{% if client %}{% url 'clients:detail' client.pk %}{% else %}{% url 'clients:list' %}{% endif %}" class="inline-flex items-center gap-2 text-xs font-semibold text-ink-soft transition hover:text-ink">
+        <span aria-hidden="true">←</span> {% if client %}Volver a la ficha{% else %}Volver a clientes{% endif %}
+      </a>
+
+      <div class="mt-5">
+        <p class="eyebrow">{% if client %}Ficha de cliente{% else %}Nuevo cliente{% endif %}</p>
+        <h1 class="mt-2 font-display text-4xl">{% if client %}{{ client.name }}{% else %}Sumá un cliente{% endif %}</h1>
+        <p class="mt-3 max-w-xl text-sm leading-6 text-ink-soft">
+          Los datos de contacto te sirven para organizar turnos y preparar recordatorios.
+        </p>
+      </div>
+
+      <form method="post" class="card mt-6 p-6 sm:p-8" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {{ form.non_field_errors|striptags }}
+          </div>
+        {% endif %}
+
+        <div>
+          <label for="{{ form.name.id_for_label }}" class="label">{{ form.name.label }}</label>
+          {{ form.name }}
+          {% for error in form.name.errors %}
+            <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="mt-5 grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="{{ form.phone.id_for_label }}" class="label">{{ form.phone.label }}</label>
+            {{ form.phone }}
+            {% for error in form.phone.errors %}
+              <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+            {% endfor %}
+            <p class="mt-2 text-xs leading-5 text-ink-soft">{{ form.phone.help_text }}</p>
+          </div>
+
+          <div>
+            <label for="{{ form.email.id_for_label }}" class="label">{{ form.email.label }}</label>
+            {{ form.email }}
+            {% for error in form.email.errors %}
+              <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <label for="{{ form.notes.id_for_label }}" class="label">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% for error in form.notes.errors %}
+            <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+          {% endfor %}
+          <p class="mt-2 text-xs leading-5 text-ink-soft">{{ form.notes.help_text }}</p>
+        </div>
+
+        <div class="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <a href="{% if client %}{% url 'clients:detail' client.pk %}{% else %}{% url 'clients:list' %}{% endif %}" class="btn-secondary">Cancelar</a>
+          <button type="submit" class="btn-primary">{% if client %}Guardar cambios{% else %}Agregar cliente{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </main>
+{% endblock %}

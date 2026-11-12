@@ -1,0 +1,18 @@
+{% load static %}
+<aside class="hidden overflow-hidden rounded-[2rem] border border-ink/10 bg-celeste-soft/55 p-10 lg:flex lg:flex-col lg:justify-between">
+  <div>
+    <p class="eyebrow">Elaris</p>
+    <h2 class="mt-4 max-w-sm font-display text-4xl leading-[1.05] text-ink">Tu espacio de trabajo, tan cuidado como tu trabajo.</h2>
+    <p class="mt-4 max-w-sm text-sm leading-6 text-ink-soft">Un lugar simple para organizar tus servicios, tus horarios y tus turnos.</p>
+  </div>
+
+  <div class="my-10 flex justify-center">
+    <img src="{% static 'brand/icon-512.png' %}" alt="" class="h-36 w-36 rounded-[2rem] shadow-[0_30px_60px_-30px_rgba(93,112,132,0.55)]">
+  </div>
+
+  <ul class="space-y-3 text-sm font-semibold text-ink">
+    <li class="flex items-center gap-3"><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-ink">✓</span> Tus rubros y servicios</li>
+    <li class="flex items-center gap-3"><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-ink">✓</span> Tus horarios y turnos</li>
+    <li class="flex items-center gap-3"><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-ink">✓</span> Tus clientes e historial</li>
+  </ul>
+</aside>

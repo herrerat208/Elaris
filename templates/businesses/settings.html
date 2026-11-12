@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Configuración · Elaris{% endblock %}
+
+{% block body %}
+  {% include "partials/app_header.html" %}
+  {% include "partials/messages.html" %}
+
+  <main class="container-page pb-16 pt-8 sm:pt-10">
+    <div class="max-w-3xl">
+      <div>
+        <p class="eyebrow">Tu espacio</p>
+        <h1 class="mt-2 font-display text-4xl leading-none sm:text-5xl">Configuración</h1>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-ink-soft">
+          Ajustá los datos del negocio, tus rubros y el acceso a tu cuenta. También podés descargar una copia de tus datos.
+        </p>
+      </div>
+
+      <div class="mt-8 grid gap-5">
+        <section class="card p-6 sm:p-8">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="eyebrow">Negocio</p>
+              <h2 class="mt-1 font-display text-3xl">Tu espacio</h2>
+              <p class="mt-2 max-w-xl text-sm leading-6 text-ink-soft">
+                El nombre es interno. Tu WhatsApp se agrega al final de los recordatorios para que tus clientes puedan responderte.
+              </p>
+            </div>
+          </div>
+
+          <form method="post" class="mt-6 space-y-5" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="form_name" value="business">
+
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="{{ business_form.name.id_for_label }}" class="label">{{ business_form.name.label }}</label>
+                {{ business_form.name }}
+                {% for error in business_form.name.errors %}
+                  <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                {% endfor %}
+              </div>
+              <div>
+                <label for="{{ business_form.whatsapp.id_for_label }}" class="label">{{ business_form.whatsapp.label }}</label>
+                {{ business_form.whatsapp }}
+                {% for error in business_form.whatsapp.errors %}
+                  <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                {% endfor %}
+                <p class="mt-2 text-xs leading-5 text-ink-soft">{{ business_form.whatsapp.help_text }}</p>
+              </div>
+            </div>
+
+            <div class="border-t border-ink/10 pt-5">
+              <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p class="label mb-0">Rubros que ofrecés</p>
+                  <p class="mt-1 text-xs leading-5 text-ink-soft">Podés sumar rubros después del onboarding. Para quitar uno, primero archivá sus servicios activos.</p>
+                </div>
+              </div>
+
+              {% for error in business_form.specialties.errors %}
+                <p class="mt-2 text-xs font-medium text-red-700">{{ error }}</p>
+              {% endfor %}
+
+              <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                {% for specialty in specialty_options %}
+                  <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-ink/10 bg-cream/40 px-4 py-3 transition hover:bg-celeste-mist">
+                    <input
+                      type="checkbox"
+                      name="specialties"
+                      value="{{ specialty.pk }}"
+                      class="h-4 w-4 rounded border-ink/25 accent-ink focus:ring-celeste"
+                      {% if specialty.pk in selected_specialty_ids %}checked{% endif %}
+                    >
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white font-display text-xl text-ink">{{ specialty.name|slice:":1" }}</span>
+                    <span class="text-sm font-semibold">{{ specialty.name }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="btn-primary">Guardar espacio</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card p-6 sm:p-8">
+          <p class="eyebrow">Cuenta</p>
+          <h2 class="mt-1 font-display text-3xl">Tu acceso</h2>
+          <p class="mt-2 text-sm leading-6 text-ink-soft">El email es tu usuario para ingresar. La contraseña es personal y no se comparte.</p>
+
+          <form method="post" class="mt-6" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="form_name" value="account">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div class="flex-1">
+                <label for="{{ email_form.email.id_for_label }}" class="label">{{ email_form.email.label }}</label>
+                {{ email_form.email }}
+                {% for error in email_form.email.errors %}
+                  <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn-secondary shrink-0">Cambiar email</button>
+            </div>
+          </form>
+
+          <div class="mt-7 border-t border-ink/10 pt-6">
+            <form method="post" class="space-y-4" novalidate>
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="password">
+
+              {% if password_form.non_field_errors %}
+                <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  {{ password_form.non_field_errors|striptags }}
+                </div>
+              {% endif %}
+
+              <div>
+                <label for="{{ password_form.old_password.id_for_label }}" class="label">{{ password_form.old_password.label }}</label>
+                {{ password_form.old_password }}
+                {% for error in password_form.old_password.errors %}
+                  <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label for="{{ password_form.new_password1.id_for_label }}" class="label">{{ password_form.new_password1.label }}</label>
+                  {{ password_form.new_password1 }}
+                  {% for error in password_form.new_password1.errors %}
+                    <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                  {% endfor %}
+                </div>
+                <div>
+                  <label for="{{ password_form.new_password2.id_for_label }}" class="label">{{ password_form.new_password2.label }}</label>
+                  {{ password_form.new_password2 }}
+                  {% for error in password_form.new_password2.errors %}
+                    <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button type="submit" class="btn-secondary">Cambiar contraseña</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="card p-6 sm:p-8">
+          <p class="eyebrow">Datos</p>
+          <h2 class="mt-1 font-display text-3xl">Exportar y respaldar</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-ink-soft">
+            Descargá tus clientes, turnos e ingresos en CSV para abrirlos en una planilla. El respaldo JSON incluye toda la información de tu espacio.
+          </p>
+
+          <div class="mt-5 grid gap-2 sm:grid-cols-2">
+            <a href="{% url 'businesses:export_clients' %}" class="flex items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-cream/40 px-4 py-3 text-sm font-semibold transition hover:bg-celeste-mist">
+              <span>Clientes</span>
+              <span class="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">CSV ↓</span>
+            </a>
+            <a href="{% url 'businesses:export_appointments' %}" class="flex items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-cream/40 px-4 py-3 text-sm font-semibold transition hover:bg-celeste-mist">
+              <span>Turnos</span>
+              <span class="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">CSV ↓</span>
+            </a>
+            <a href="{% url 'businesses:export_income' %}" class="flex items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-cream/40 px-4 py-3 text-sm font-semibold transition hover:bg-celeste-mist">
+              <span>Ingresos</span>
+              <span class="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">CSV ↓</span>
+            </a>
+            <a href="{% url 'businesses:backup' %}" class="flex items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-cream/40 px-4 py-3 text-sm font-semibold transition hover:bg-celeste-mist">
+              <span>Respaldo completo</span>
+              <span class="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">JSON ↓</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="rounded-[1.75rem] border border-ink/10 bg-celeste-soft/60 p-6 sm:p-8">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="eyebrow">Aplicación</p>
+              <h2 class="mt-1 font-display text-3xl">Elaris en tu teléfono</h2>
+              <p class="mt-2 max-w-xl text-sm leading-6 text-ink-soft">
+                Podés instalarla como aplicación desde el menú del navegador. En Android elegí “Instalar app”; en iPhone, “Agregar a pantalla de inicio”.
+              </p>
+            </div>
+            <span class="inline-flex shrink-0 items-center justify-center rounded-2xl border border-ink/10 bg-white px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-ink-soft">PWA</span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+{% endblock %}

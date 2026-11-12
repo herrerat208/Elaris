@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Agenda semanal · Elaris{% endblock %}
+
+{% block body %}
+  {% include "partials/app_header.html" %}
+  {% include "partials/messages.html" %}
+
+  <main class="container-page pb-16 pt-8 sm:pt-10">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="eyebrow">Agenda</p>
+        <h1 class="mt-2 font-display text-4xl leading-none sm:text-5xl">Tu semana</h1>
+        <p class="mt-3 max-w-xl text-sm leading-6 text-ink-soft">
+          Mirá tus turnos de un vistazo y entrá al día que necesites para ver la disponibilidad.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="?semana={{ prev_week }}" class="btn-secondary px-4 py-2 text-xs">← Semana anterior</a>
+        <a href="{% url 'agenda:week' %}" class="btn-secondary px-4 py-2 text-xs">Hoy</a>
+        <a href="?semana={{ next_week }}" class="btn-secondary px-4 py-2 text-xs">Semana siguiente →</a>
+      </div>
+    </div>
+
+    <div class="mt-7 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="chip">{{ week_start|date:"d/m" }} – {{ week_end|date:"d/m/Y" }}</span>
+        <span class="chip">{{ appointment_count }} turno{{ appointment_count|pluralize }}</span>
+      </div>
+      <a href="{% url 'agenda:appointment_create' %}" class="btn-primary">+ Nuevo turno</a>
+    </div>
+
+    <div class="week-grid mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {% for day in days %}
+        <section class="card p-4 {% if day.is_today %}ring-2 ring-celeste{% endif %}">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="eyebrow">{{ day.weekday_label }}</p>
+              <p class="mt-1 font-display text-2xl">{{ day.date|date:"d/m" }}</p>
+            </div>
+            {% if day.is_today %}
+              <span class="badge badge-scheduled">Hoy</span>
+            {% elif day.time_off %}
+              <span class="badge badge-no-show">Libre</span>
+            {% endif %}
+          </div>
+
+          <div class="mt-2">
+            {% if day.time_off %}
+              <p class="text-xs text-ink-soft">Día libre{% if day.time_off.reason %}: {{ day.time_off.reason }}{% endif %}</p>
+            {% elif day.schedule_blocks %}
+              <p class="text-[0.65rem] leading-5 text-ink-soft">
+                {% for block in day.schedule_blocks %}{{ block.start_time|time:"H:i" }}–{{ block.end_time|time:"H:i" }}{% if not forloop.last %} · {% endif %}{% endfor %}
+              </p>
+            {% else %}
+              <p class="text-xs text-ink-soft">Sin horario</p>
+            {% endif %}
+          </div>
+
+          <div class="mt-3 space-y-2">
+            {% for appointment in day.appointments %}
+              <a href="{% url 'agenda:appointment_detail' appointment.pk %}" class="block rounded-xl border border-ink/10 p-2.5 transition hover:border-celeste hover:bg-celeste-mist {% if appointment.status == 'cancelled' %}opacity-60{% endif %}">
+                <div class="flex items-center justify-between gap-1">
+                  <p class="text-xs font-bold">{{ appointment.start_at|date:"H:i" }}</p>
+                  <span class="badge {{ appointment.status_badge_class }} px-1.5 py-0.5 text-[0.52rem]">{{ appointment.get_status_display }}</span>
+                </div>
+                <p class="mt-1 text-xs font-semibold leading-4 break-words">{{ appointment.client.name }}</p>
+                <p class="text-[0.65rem] leading-4 text-ink-soft break-words">{{ appointment.service_name }}</p>
+              </a>
+            {% empty %}
+              <p class="rounded-xl border border-dashed border-ink/10 p-3 text-center text-[0.65rem] leading-5 text-ink-soft">
+                {% if day.time_off %}Día libre{% elif not day.schedule_blocks %}Sin horario{% else %}Sin turnos{% endif %}
+              </p>
+            {% endfor %}
+          </div>
+
+          <a href="{% url 'agenda:day' %}?fecha={{ day.date|date:'Y-m-d' }}" class="mt-3 inline-flex text-xs font-semibold underline decoration-celeste decoration-2 underline-offset-4 hover:text-ink-deep">Ver día</a>
+        </section>
+      {% endfor %}
+    </div>
+  </main>
+{% endblock %}

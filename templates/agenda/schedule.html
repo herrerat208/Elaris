@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Horarios · Elaris{% endblock %}
+
+{% block body %}
+  {% include "partials/app_header.html" %}
+  {% include "partials/messages.html" %}
+
+  <main class="container-page pb-16 pt-8 sm:pt-10">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <a href="{% url 'agenda:week' %}" class="inline-flex items-center gap-2 text-xs font-semibold text-ink-soft transition hover:text-ink">
+          <span aria-hidden="true">←</span> Volver a la agenda
+        </a>
+        <p class="eyebrow mt-5">Disponibilidad</p>
+        <h1 class="mt-2 font-display text-4xl leading-none sm:text-5xl">Tus horarios</h1>
+        <p class="mt-3 max-w-xl text-sm leading-6 text-ink-soft">
+          Cargá tus bloques de atención. Los espacios entre bloques son tus descansos, y los días sin bloques quedan libres.
+        </p>
+      </div>
+      {% if not has_blocks %}
+        <form method="post" action="{% url 'agenda:schedule_suggested' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary">Usar horario sugerido</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <div class="mt-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+      <section class="card p-6 sm:p-8">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Semana</p>
+            <h2 class="mt-1 font-display text-3xl">Bloques de atención</h2>
+            <p class="mt-2 text-xs leading-5 text-ink-soft">Podés cargar varios bloques por día. Por ejemplo, mañana y tarde con un corte al mediodía.</p>
+          </div>
+        </div>
+
+        <form method="post" class="mt-6" data-schedule-formset>
+          {% csrf_token %}
+          {{ formset.management_form }}
+
+          {% if formset.non_form_errors %}
+            <div class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {{ formset.non_form_errors|striptags }}
+            </div>
+          {% endif %}
+
+          <div class="space-y-3" data-schedule-rows>
+            {% for form in formset %}
+              {% include "agenda/partials/schedule_row.html" with form=form %}
+            {% endfor %}
+          </div>
+
+          <template id="schedule-empty-form">
+            {% include "agenda/partials/schedule_row.html" with form=formset.empty_form %}
+          </template>
+
+          <div class="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" class="btn-secondary" data-add-schedule-row>+ Agregar bloque</button>
+            <button type="submit" class="btn-primary">Guardar horarios</button>
+          </div>
+        </form>
+      </section>
+
+      <div class="space-y-5">
+        <section class="card p-6">
+          <p class="eyebrow">Excepciones</p>
+          <h2 class="mt-1 font-display text-3xl">Días libres</h2>
+          <p class="mt-2 text-xs leading-5 text-ink-soft">Bloqueá vacaciones, feriados o cualquier día en el que no atiendas.</p>
+
+          <form method="post" action="{% url 'agenda:time_off_create' %}" class="mt-5" novalidate>
+            {% csrf_token %}
+            {% if time_off_form.non_field_errors %}
+              <div class="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{{ time_off_form.non_field_errors|striptags }}</div>
+            {% endif %}
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="{{ time_off_form.start_date.id_for_label }}" class="label">{{ time_off_form.start_date.label }}</label>
+                {{ time_off_form.start_date }}
+                {% for error in time_off_form.start_date.errors %}
+                  <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                {% endfor %}
+              </div>
+              <div>
+                <label for="{{ time_off_form.end_date.id_for_label }}" class="label">{{ time_off_form.end_date.label }}</label>
+                {{ time_off_form.end_date }}
+                {% for error in time_off_form.end_date.errors %}
+                  <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+                {% endfor %}
+                {% if time_off_form.end_date.help_text %}
+                  <p class="mt-2 text-xs leading-5 text-ink-soft">{{ time_off_form.end_date.help_text }}</p>
+                {% endif %}
+              </div>
+            </div>
+            <div class="mt-3">
+              <label for="{{ time_off_form.reason.id_for_label }}" class="label">{{ time_off_form.reason.label }}</label>
+              {{ time_off_form.reason }}
+              {% for error in time_off_form.reason.errors %}
+                <p class="mt-1 text-xs font-medium text-red-700">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <button type="submit" class="btn-secondary mt-4 w-full">Agregar día libre</button>
+          </form>
+
+          <div class="mt-5 divide-y divide-ink/10 border-t border-ink/10 pt-2">
+            {% for day_off in time_off %}
+              <div class="flex items-start justify-between gap-3 py-3">
+                <div>
+                  <p class="text-sm font-semibold text-ink-deep">
+                    {% if day_off.is_single_day %}
+                      {{ day_off.start_date|date:"d/m/Y" }}
+                    {% else %}
+                      {{ day_off.start_date|date:"d/m/Y" }} – {{ day_off.end_date|date:"d/m/Y" }}
+                    {% endif %}
+                  </p>
+                  <p class="mt-0.5 text-xs text-ink-soft">{{ day_off.reason|default:"Día libre" }}</p>
+                </div>
+                <form method="post" action="{% url 'agenda:time_off_delete' day_off.pk %}" data-confirm="¿Eliminar este día libre?">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-ghost px-2 py-1 text-xs text-ink-soft">Quitar</button>
+                </form>
+              </div>
+            {% empty %}
+              <p class="py-4 text-sm text-ink-soft">No tenés días libres cargados.</p>
+            {% endfor %}
+          </div>
+        </section>
+
+        {% if grouped_blocks %}
+          <section class="card p-6">
+            <p class="eyebrow">Vista rápida</p>
+            <h2 class="mt-1 font-display text-3xl">Tu semana</h2>
+            <div class="mt-4 space-y-3">
+              {% for group in grouped_blocks %}
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">{{ group.label }}</p>
+                  <p class="mt-1 text-sm text-ink">
+                    {% for block in group.blocks %}{{ block.start_time|time:"H:i" }}–{{ block.end_time|time:"H:i" }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                  </p>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+{% endblock %}
