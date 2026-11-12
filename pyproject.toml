@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = [".venv", "node_modules", "staticfiles", "media", "design", "*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.ruff.format]
+quote-style = "double"

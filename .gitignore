@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+
+# Django
+.env
+staticfiles/
+media/
+*.log
+
+# Frontend
+node_modules/
+npm-debug.log*
+
+# Tooling / OS
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+.idea/
+.vscode/
