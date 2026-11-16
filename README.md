@@ -195,13 +195,13 @@ La migración `agenda.0003_exclude_overlapping_appointments` agrega la extensió
 
 El proyecto `elaris` en Vercel usa el preset Django y una base PostgreSQL de Neon conectada desde el Marketplace. En Vercel el sistema de archivos es de solo lectura: SQLite no puede usarse en producción porque falla al guardar usuarios, sesiones, turnos y cobros.
 
-La integración de Neon inyecta `DATABASE_URL` (pooled). Además hay que configurar en Production:
+La integración de Neon inyecta `DATABASE_URL` (pooled). El dominio público es `https://studioelaris.vercel.app`. Además hay que configurar en Production:
 
 ```bash
 DJANGO_SECRET_KEY=una-clave-larga-y-segura
 DJANGO_DEBUG=0
-DJANGO_ALLOWED_HOSTS=elaris-six-bice.vercel.app,elaris-th208.vercel.app
-DJANGO_CSRF_TRUSTED_ORIGINS=https://elaris-six-bice.vercel.app,https://elaris-th208.vercel.app
+DJANGO_ALLOWED_HOSTS=studioelaris.vercel.app,elaris-six-bice.vercel.app,elaris-th208.vercel.app
+DJANGO_CSRF_TRUSTED_ORIGINS=https://studioelaris.vercel.app,https://elaris-six-bice.vercel.app,https://elaris-th208.vercel.app
 ```
 
 Para aplicar migraciones a la base de producción desde una copia local:
