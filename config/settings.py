@@ -159,11 +159,27 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "businesses:dashboard"
 LOGOUT_REDIRECT_URL = "core:landing"
 
-EMAIL_BACKEND = os.getenv(
-    "DJANGO_EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend",
+# Email: console in development; SMTP when DJANGO_EMAIL_HOST is configured.
+# Password reset needs a real provider in production.
+EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "")
+EMAIL_USE_SSL = env_bool("DJANGO_EMAIL_USE_SSL", False)
+EMAIL_USE_TLS = env_bool("DJANGO_EMAIL_USE_TLS", not EMAIL_USE_SSL)
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured(
+        "DJANGO_EMAIL_USE_TLS y DJANGO_EMAIL_USE_SSL no pueden estar activos a la vez."
+    )
+EMAIL_BACKEND = os.getenv("DJANGO_EMAIL_BACKEND") or (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
 )
+EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_TIMEOUT = int(os.getenv("DJANGO_EMAIL_TIMEOUT", "10"))
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Elaris <no-reply@elaris.local>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+PASSWORD_RESET_TIMEOUT = int(os.getenv("DJANGO_PASSWORD_RESET_TIMEOUT", "86400"))
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True

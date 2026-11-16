@@ -11,6 +11,7 @@ El MVP está implementado de punta a punta: cuenta, onboarding, servicios, clien
 ### Cuenta y onboarding
 
 - Registro e inicio de sesión con email y contraseña.
+- Recuperación de contraseña con un link por email, válido 24 horas y de un solo uso.
 - Una cuenta equivale a una profesional y a un negocio.
 - Onboarding con nombre del negocio, rubros (Uñas, Pestañas y Cejas) y selección de servicios iniciales.
 - Catálogo de 21 servicios precargados con duraciones estimadas y precios vacíos.
@@ -214,6 +215,29 @@ set +a
 ```
 
 Después de cambiar el modelo, generá y commiteá la migración, aplicála en producción y volvé a desplegar. Si `DJANGO_DEBUG=0` y falta `DJANGO_SECRET_KEY` o `DATABASE_URL`, la app no arranca a propósito.
+
+### Email y recuperación de contraseña
+
+La recuperación de contraseña necesita un proveedor SMTP en producción. Sin configurarlo, Django usa el backend de consola: el link se escribe en los logs y no llega a la persona. El check `elaris.W001` avisa de esa situación en `manage.py check --deploy`.
+
+Variables necesarias en Production:
+
+```bash
+DJANGO_EMAIL_HOST=smtp-relay.brevo.com
+DJANGO_EMAIL_PORT=587
+DJANGO_EMAIL_HOST_USER=tu@email.com
+DJANGO_EMAIL_HOST_PASSWORD=tu-clave-smtp
+DJANGO_EMAIL_USE_TLS=1
+DEFAULT_FROM_EMAIL=Elaris <tu@email.com>
+```
+
+Opciones:
+
+- **Brevo** (recomendado si todavía no hay dominio): plan free, verificás un email como remitente y generás una clave SMTP. Permite enviar a cualquier destinatario.
+- **Resend** (recomendado con dominio propio): verificás el dominio y usás `smtp.resend.com`, usuario `resend` y la API key como clave.
+- **Gmail**: `smtp.gmail.com`, puerto 587, tu email y una contraseña de aplicación.
+
+El remitente de `DEFAULT_FROM_EMAIL` tiene que estar verificado en el proveedor. El link usa el host de la request, así que funciona igual en Vercel o en un dominio propio. `DJANGO_PASSWORD_RESET_TIMEOUT` define la vigencia en segundos (86400 por defecto).
 
 ## Documentación
 

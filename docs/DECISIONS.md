@@ -10,6 +10,14 @@
 - El onboarding crea el negocio, asocia los rubros elegidos y copia los servicios seleccionados. Archivar un servicio no borra historial.
 - Los clientes y los servicios se archivan y se reactivan; no se eliminan desde el panel.
 
+## Cuenta y acceso
+
+- Registro e inicio de sesión con email y contraseña. En el MVP no hay verificación de email ni login con Google.
+- La recuperación de contraseña usa las vistas de Django y un link por email de un solo uso, válido 24 horas por defecto (`DJANGO_PASSWORD_RESET_TIMEOUT`).
+- El pedido de recuperación no revela si el email existe: siempre muestra la misma pantalla y solo envía el correo cuando la cuenta está activa.
+- En producción el envío requiere SMTP configurado. Si no, el check `elaris.W001` avisa y el link queda en los logs en lugar de llegar por email.
+- No hay 2FA ni preguntas de seguridad en el MVP.
+
 ## Stack
 
 - Django 5.2 LTS + templates server-side + HTMX + Tailwind CSS 4.

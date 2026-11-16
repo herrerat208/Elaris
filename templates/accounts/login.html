@@ -35,6 +35,9 @@
           <div>
             <div class="flex items-center justify-between gap-3">
               <label for="{{ form.password.id_for_label }}" class="label">Contraseña</label>
+              <a href="{% url 'accounts:password_reset' %}" class="text-xs font-semibold text-ink-soft transition hover:text-ink hover:underline">
+                ¿Olvidaste tu contraseña?
+              </a>
             </div>
             {{ form.password }}
             {% for error in form.password.errors %}

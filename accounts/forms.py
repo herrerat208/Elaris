@@ -119,6 +119,45 @@ class AccountEmailForm(forms.Form):
         return email
 
 
+class StyledPasswordResetForm(auth_forms.PasswordResetForm):
+    email = forms.EmailField(
+        label="Email de la cuenta",
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={
+                "autofocus": True,
+                "autocomplete": "email",
+                "placeholder": "tu@email.com",
+                "class": "field",
+            }
+        ),
+    )
+
+    def clean_email(self):
+        return self.cleaned_data["email"].strip().lower()
+
+
+class StyledSetPasswordForm(auth_forms.SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].label = "Nueva contraseña"
+        self.fields["new_password1"].widget.attrs.update(
+            {
+                "autocomplete": "new-password",
+                "placeholder": "Mínimo 8 caracteres",
+                "class": "field",
+            }
+        )
+        self.fields["new_password2"].label = "Repetí la nueva contraseña"
+        self.fields["new_password2"].widget.attrs.update(
+            {
+                "autocomplete": "new-password",
+                "placeholder": "Repetí tu contraseña",
+                "class": "field",
+            }
+        )
+
+
 class StyledPasswordChangeForm(auth_forms.PasswordChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
