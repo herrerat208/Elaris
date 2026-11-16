@@ -179,6 +179,7 @@ class AppointmentForm(forms.ModelForm):
         # ModelForm mutates self.instance during _post_clean, so keep the
         # database values to detect real service/time changes on edits.
         self._is_new = not self.instance.pk
+        self._original_client_id = self.instance.client_id
         self._original_service_id = self.instance.service_id
         self._original_service_name = self.instance.service_name
         self._original_duration_minutes = self.instance.duration_minutes
@@ -250,6 +251,13 @@ class AppointmentForm(forms.ModelForm):
         appointment.end_at = appointment.start_at + timedelta(minutes=appointment.duration_minutes)
         if appointment.price is None:
             appointment.price = appointment.service.price
+        if not self._is_new and (
+            appointment.client_id != self._original_client_id
+            or appointment.service_id != self._original_service_id
+            or appointment.start_at != self._original_start_at
+        ):
+            # The reminder message changes, so a previous send is no longer valid.
+            appointment.reminded_at = None
         if commit:
             appointment.save()
         return appointment

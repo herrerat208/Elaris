@@ -868,6 +868,7 @@ class CalendarTests(AgendaTestBase):
 class ReminderTests(AgendaTestBase):
     def setUp(self):
         super().setUp()
+        self._create_week_schedule()
         self.client.force_login(self.user_a)
         self.tomorrow = self.today + timedelta(days=1)
 
@@ -1008,6 +1009,60 @@ class ReminderTests(AgendaTestBase):
         self.assertEqual(other_response.status_code, 404)
         other_appointment.refresh_from_db()
         self.assertIsNone(other_appointment.reminded_at)
+
+    def test_rescheduling_clears_reminded_at(self):
+        appointment = self._appointment(
+            day=self.tomorrow,
+            hour=10,
+            reminded_at=timezone.now(),
+        )
+        new_day = self.tomorrow + timedelta(days=1)
+
+        response = self.client.post(
+            reverse("agenda:appointment_edit", args=[appointment.pk]),
+            {
+                "client": self.client_a.pk,
+                "service": self.service_a.pk,
+                "start_at": f"{new_day.isoformat()}T10:00",
+                "price": "",
+                "notes": "",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+        appointment.refresh_from_db()
+        self.assertEqual(appointment.start_at, self._start_at(new_day, 10))
+        self.assertIsNone(appointment.reminded_at)
+
+    def test_editing_notes_keeps_reminded_at(self):
+        reminded_at = timezone.now()
+        appointment = self._appointment(
+            day=self.tomorrow,
+            hour=10,
+            reminded_at=reminded_at,
+        )
+
+        response = self.client.post(
+            reverse("agenda:appointment_edit", args=[appointment.pk]),
+            {
+                "client": self.client_a.pk,
+                "service": self.service_a.pk,
+                "start_at": f"{self.tomorrow.isoformat()}T10:00",
+                "price": "",
+                "notes": "Nota que no cambia el mensaje.",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+        appointment.refresh_from_db()
+        self.assertEqual(appointment.reminded_at, reminded_at)
+        self.assertEqual(appointment.notes, "Nota que no cambia el mensaje.")
 
 
 class PaymentTests(AgendaTestBase):
