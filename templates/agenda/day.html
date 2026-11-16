@@ -67,7 +67,7 @@
                 <a href="{% url 'agenda:appointment_edit' appointment.pk %}" class="btn-ghost px-3 py-1.5 text-xs">Editar</a>
                 <a href="{% url 'agenda:appointment_repeat' appointment.pk %}" class="btn-ghost px-3 py-1.5 text-xs">Repetir</a>
                 {% if appointment.status == 'scheduled' %}
-                  <form method="post" action="{% url 'agenda:appointment_complete' appointment.pk %}">
+                  <form method="post" action="{% url 'agenda:appointment_complete' appointment.pk %}" data-confirm="¿Marcar este turno como completado? Revisá el cobro antes de confirmar.">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <button type="submit" class="btn-primary px-3 py-1.5 text-xs">Completar</button>

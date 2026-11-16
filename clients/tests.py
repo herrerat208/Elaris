@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
 from django.test import TestCase
 from django.urls import reverse
@@ -203,6 +204,121 @@ class ClientViewTests(TestCase):
         self.assertEqual(list(response.context["history"]), [past])
         self.assertNotContains(response, "Servicio futuro no asistido")
         self.assertNotContains(response, "Servicio futuro cancelado")
+
+    def test_detail_shows_metrics_next_appointment_and_whatsapp(self):
+        today = timezone.localdate()
+        tz = timezone.get_current_timezone()
+
+        def appointment(day, hour, status):
+            start = timezone.make_aware(datetime.combine(day, time(hour, 0)), tz)
+            return Appointment.objects.create(
+                business=self.business_a,
+                client=self.client_a,
+                service=self.service_a,
+                service_name=self.service_a.name,
+                duration_minutes=60,
+                price="12000",
+                start_at=start,
+                end_at=start + timedelta(minutes=60),
+                status=status,
+            )
+
+        completed = appointment(
+            today - timedelta(days=10),
+            10,
+            Appointment.STATUS_COMPLETED,
+        )
+        appointment(
+            today - timedelta(days=5),
+            10,
+            Appointment.STATUS_NO_SHOW,
+        )
+        upcoming = appointment(
+            today + timedelta(days=2),
+            10,
+            Appointment.STATUS_SCHEDULED,
+        )
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(reverse("clients:detail", args=[self.client_a.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["last_visit"], completed)
+        self.assertEqual(response.context["next_appointment"], upcoming)
+        self.assertEqual(response.context["completed_count"], 1)
+        self.assertEqual(response.context["no_show_count"], 1)
+        self.assertEqual(response.context["total_spent"], Decimal("12000.00"))
+        self.assertContains(response, "Total facturado")
+        self.assertContains(response, "Ausencias")
+        self.assertContains(
+            response,
+            timezone.localtime(completed.start_at).strftime("%d/%m/%Y"),
+        )
+        self.assertContains(response, "Hace ")
+        self.assertContains(response, "https://wa.me/5491155551111")
+        self.assertContains(response, "Repetir último")
+
+    def test_list_can_filter_clients_to_recontact(self):
+        today = timezone.localdate()
+        tz = timezone.get_current_timezone()
+
+        def appointment(client, day, status):
+            start = timezone.make_aware(datetime.combine(day, time(10, 0)), tz)
+            return Appointment.objects.create(
+                business=self.business_a,
+                client=client,
+                service=self.service_a,
+                service_name=self.service_a.name,
+                duration_minutes=60,
+                price="12000",
+                start_at=start,
+                end_at=start + timedelta(minutes=60),
+                status=status,
+            )
+
+        old_client = Client.objects.create(
+            business=self.business_a,
+            name="Clienta para recontactar",
+            phone="11 5555 3333",
+        )
+        recent_client = Client.objects.create(
+            business=self.business_a,
+            name="Clienta reciente",
+            phone="11 5555 4444",
+        )
+        upcoming_client = Client.objects.create(
+            business=self.business_a,
+            name="Clienta con turno",
+            phone="11 5555 5555",
+        )
+        appointment(
+            old_client,
+            today - timedelta(days=45),
+            Appointment.STATUS_COMPLETED,
+        )
+        appointment(
+            recent_client,
+            today - timedelta(days=10),
+            Appointment.STATUS_COMPLETED,
+        )
+        appointment(
+            upcoming_client,
+            today + timedelta(days=2),
+            Appointment.STATUS_SCHEDULED,
+        )
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(
+            reverse("clients:list"),
+            {"recontactar": "1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["recontact"])
+        self.assertContains(response, "Clienta para recontactar")
+        self.assertNotContains(response, "Clienta reciente")
+        self.assertNotContains(response, "Clienta con turno")
+        self.assertContains(response, "Sin turno futuro")
 
     def test_edit_is_scoped_to_business_and_updates_data(self):
         self.client.force_login(self.user_a)

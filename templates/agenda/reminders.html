@@ -33,8 +33,15 @@
 
     {% if all_messages %}
       <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-ink/10 bg-celeste-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-xs leading-5 text-ink-soft">Podés copiar todos los mensajes pendientes juntos y enviarlos uno por uno.</p>
-        <button type="button" class="btn-secondary shrink-0 px-4 py-2 text-xs" data-copy-text="{{ all_messages }}">Copiar mensajes pendientes</button>
+        <p class="text-xs leading-5 text-ink-soft">Podés copiar todos los mensajes pendientes juntos y enviarlos uno por uno. Marcá los recordatorios recién después de enviarlos.</p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn-secondary px-4 py-2 text-xs" data-copy-text="{{ all_messages }}">Copiar mensajes pendientes</button>
+          <form method="post" action="{% url 'agenda:reminders_mark_all' %}" data-confirm="¿Marcar todos los recordatorios pendientes de este día como enviados?">
+            {% csrf_token %}
+            <input type="hidden" name="fecha" value="{{ selected_date|date:'Y-m-d' }}">
+            <button type="submit" class="btn-primary px-4 py-2 text-xs">Marcar todos</button>
+          </form>
+        </div>
       </div>
     {% endif %}
 

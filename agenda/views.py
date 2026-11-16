@@ -264,6 +264,28 @@ def reminders(request):
 
 
 @business_required
+@require_POST
+def reminders_mark_all(request):
+    business = request.business
+    selected_date = _parse_date(request.POST.get("fecha")) or (
+        timezone.localdate() + timedelta(days=1)
+    )
+    start_at, end_at = day_bounds(selected_date)
+    now = timezone.now()
+    updated = business.appointments.filter(
+        status=Appointment.STATUS_SCHEDULED,
+        start_at__gte=start_at,
+        start_at__lt=end_at,
+        reminded_at__isnull=True,
+    ).update(reminded_at=now, updated_at=now)
+    if updated:
+        messages.success(request, f"Recordatorios actualizados: {updated}.")
+    else:
+        messages.info(request, "No había recordatorios pendientes para ese día.")
+    return redirect(f"{reverse('agenda:reminders')}?fecha={selected_date.isoformat()}")
+
+
+@business_required
 def availability(request):
     business = request.business
     selected_date = _parse_date(request.GET.get("fecha")) or timezone.localdate()

@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <div class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article class="card p-5">
         <p class="eyebrow">Ingresos</p>
         <p class="stat-value text-3xl sm:text-4xl">{{ income_total|ars }}</p>
@@ -44,6 +44,22 @@
         <p class="eyebrow">Ticket promedio</p>
         <p class="stat-value text-3xl sm:text-4xl">{{ average_ticket|ars }}</p>
         <p class="mt-2 text-xs text-ink-soft">por turno con precio</p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">Ocupación</p>
+        <p class="stat-value text-3xl sm:text-4xl">{% if occupancy_percent is not None %}{{ occupancy_percent }}%{% else %}—{% endif %}</p>
+        <p class="mt-2 text-xs leading-5 text-ink-soft">
+          {% if occupancy_percent is not None %}
+            {{ booked_minutes }} de {{ available_minutes }} min de agenda ocupados
+          {% else %}
+            Configurá horarios para calcularla
+          {% endif %}
+        </p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">Tasa de ausencias</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ no_show_rate }}%</p>
+        <p class="mt-2 text-xs leading-5 text-ink-soft">sobre turnos completados y ausencias</p>
       </article>
       <article class="card p-5">
         <p class="eyebrow">Cancelados</p>

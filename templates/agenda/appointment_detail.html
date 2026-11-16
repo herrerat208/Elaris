@@ -159,7 +159,7 @@
 
           <div class="mt-5 space-y-2">
             {% if appointment.status == 'scheduled' %}
-              <form method="post" action="{% url 'agenda:appointment_complete' appointment.pk %}">
+              <form method="post" action="{% url 'agenda:appointment_complete' appointment.pk %}" data-confirm="¿Marcar este turno como completado? Revisá el cobro antes de confirmar.">
                 {% csrf_token %}
                 <button type="submit" class="btn-primary w-full">Marcar completado</button>
               </form>

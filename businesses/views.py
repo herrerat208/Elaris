@@ -153,6 +153,13 @@ def dashboard(request):
     )
     month_income = month_completed.aggregate(total=Sum("price"))["total"] or Decimal("0.00")
     month_completed_count = month_completed.count()
+    month_pending = Decimal("0.00")
+    for appointment in month_completed:
+        if appointment.price is None:
+            continue
+        paid = appointment.amount_paid or Decimal("0.00")
+        if paid < appointment.price:
+            month_pending += appointment.price - paid
     active_clients_count = business.clients.filter(is_active=True).count()
     has_schedule = business.schedule_blocks.exists()
     has_appointments = business.appointments.exists()
@@ -244,6 +251,7 @@ def dashboard(request):
             "active_clients_count": active_clients_count,
             "month_income": month_income,
             "month_completed_count": month_completed_count,
+            "month_pending": month_pending,
             "new_appointment_url": reverse("agenda:appointment_create"),
             "today_url": f"{reverse('agenda:day')}?fecha={today.isoformat()}",
             "income_url": reverse("agenda:income"),

@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
 from django.test import TestCase
 from django.urls import reverse
@@ -354,6 +355,39 @@ class DashboardTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.service_b.refresh_from_db()
         self.assertTrue(self.service_b.is_active)
+
+    def test_dashboard_shows_pending_collection_for_completed_appointments(self):
+        client = Client.objects.create(
+            business=self.business_a,
+            name="Clienta con saldo",
+            phone="11 5555 1111",
+        )
+        today = timezone.localdate()
+        start_at = timezone.make_aware(
+            datetime.combine(today, time(10, 0)),
+            timezone.get_current_timezone(),
+        )
+        Appointment.objects.create(
+            business=self.business_a,
+            client=client,
+            service=self.service_a,
+            service_name=self.service_a.name,
+            duration_minutes=self.service_a.duration_minutes,
+            price=Decimal("12000.00"),
+            amount_paid=Decimal("5000.00"),
+            payment_method=Appointment.PAYMENT_METHOD_CASH,
+            start_at=start_at,
+            end_at=start_at + timedelta(minutes=self.service_a.duration_minutes),
+            status=Appointment.STATUS_COMPLETED,
+        )
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(reverse("businesses:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["month_pending"], Decimal("7000.00"))
+        self.assertContains(response, "Tenés $7.000 por cobrar")
+        self.assertContains(response, "Facturado del mes")
 
     def test_dashboard_summarizes_tomorrow_reminders(self):
         client = Client.objects.create(

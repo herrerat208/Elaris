@@ -8,6 +8,11 @@ urlpatterns = [
     path("panel/agenda/", views.week, name="week"),
     path("panel/agenda/dia/", views.day, name="day"),
     path("panel/recordatorios/", views.reminders, name="reminders"),
+    path(
+        "panel/recordatorios/marcar-todos/",
+        views.reminders_mark_all,
+        name="reminders_mark_all",
+    ),
     path("panel/agenda/disponibilidad/", views.availability, name="availability"),
     path(
         "panel/agenda/turnos/<int:pk>/repetir/",

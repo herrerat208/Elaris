@@ -45,9 +45,11 @@
       </article>
 
       <article class="card p-5">
-        <p class="eyebrow">Ingresos del mes</p>
+        <p class="eyebrow">Facturado del mes</p>
         <p class="stat-value text-3xl sm:text-4xl">{{ month_income|ars }}</p>
-        <p class="mt-2 text-xs leading-5 text-ink-soft">{{ month_completed_count }} turno{{ month_completed_count|pluralize }} completado{{ month_completed_count|pluralize }}</p>
+        <p class="mt-2 text-xs leading-5 text-ink-soft">
+          {{ month_completed_count }} turno{{ month_completed_count|pluralize }} completado{{ month_completed_count|pluralize }}{% if month_pending %} · {{ month_pending|ars }} por cobrar{% endif %}
+        </p>
       </article>
 
       <article class="card p-5">
@@ -64,6 +66,16 @@
         </p>
       </article>
     </div>
+
+    {% if month_pending %}
+      <div class="mt-4 flex flex-col gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-semibold text-amber-900">Tenés {{ month_pending|ars }} por cobrar</p>
+          <p class="mt-0.5 text-xs leading-5 text-amber-800">Son turnos completados de este mes que todavía no tienen el cobro total registrado.</p>
+        </div>
+        <a href="{{ income_url }}" class="btn-secondary shrink-0 px-4 py-2 text-xs">Ver ingresos</a>
+      </div>
+    {% endif %}
 
     {% if tomorrow_reminders_count %}
       <div class="mt-4 flex flex-col gap-3 rounded-[1.5rem] border border-celeste/40 bg-celeste-soft/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

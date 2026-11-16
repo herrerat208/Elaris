@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -16,13 +18,40 @@ from .models import Client
 def client_list(request):
     business = request.business
     show_archived = request.GET.get("archivadas") == "1"
+    recontact = request.GET.get("recontactar") == "1"
     query = request.GET.get("q", "").strip()
+    now = timezone.now()
+    recontact_cutoff = now - timedelta(days=30)
 
     clients = (
         business.clients.filter(is_active=not show_archived)
-        .annotate(appointment_count=Count("appointments"))
-        .order_by("name", "id")
+        .select_related("business")
+        .annotate(
+            appointment_count=Count("appointments", distinct=True),
+            upcoming_count=Count(
+                "appointments",
+                filter=Q(
+                    appointments__status=Appointment.STATUS_SCHEDULED,
+                    appointments__start_at__gte=now,
+                ),
+                distinct=True,
+            ),
+            last_visit_at=Max(
+                "appointments__start_at",
+                filter=Q(
+                    appointments__status=Appointment.STATUS_COMPLETED,
+                    appointments__start_at__lt=now,
+                ),
+            ),
+        )
     )
+    if recontact:
+        clients = clients.filter(
+            upcoming_count=0,
+            last_visit_at__lt=recontact_cutoff,
+        ).order_by("last_visit_at", "name", "id")
+    else:
+        clients = clients.order_by("name", "id")
     if query:
         clients = clients.filter(
             Q(name__icontains=query) | Q(phone__icontains=query) | Q(email__icontains=query)
@@ -39,6 +68,7 @@ def client_list(request):
             "page_obj": page_obj,
             "query": query,
             "show_archived": show_archived,
+            "recontact": recontact,
             "active_count": business.clients.filter(is_active=True).count(),
             "archived_count": business.clients.filter(is_active=False).count(),
         },
@@ -71,7 +101,7 @@ def client_create(request):
 @business_required
 def client_detail(request, pk):
     business = request.business
-    client = get_object_or_404(Client, pk=pk, business=business)
+    client = get_object_or_404(Client.objects.select_related("business"), pk=pk, business=business)
     now = timezone.now()
 
     upcoming = (
@@ -101,6 +131,7 @@ def client_detail(request, pk):
             "business": business,
             "client": client,
             "upcoming": upcoming,
+            "next_appointment": upcoming.first(),
             "history": history,
             "last_visit": last_visit,
             "completed_count": completed_count,

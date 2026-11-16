@@ -990,6 +990,46 @@ class ReminderTests(AgendaTestBase):
             reverse("agenda:appointment_detail", args=[appointment.pk]),
         )
 
+    def test_mark_all_reminders_marks_only_pending_for_selected_day_and_business(self):
+        pending = self._appointment(day=self.tomorrow, hour=10)
+        already_reminded = self._appointment(
+            day=self.tomorrow,
+            hour=12,
+            reminded_at=timezone.now(),
+        )
+        already_reminded_at = already_reminded.reminded_at
+        other_day = self._appointment(day=self.tomorrow + timedelta(days=1), hour=10)
+        other_business = self._appointment(
+            day=self.tomorrow,
+            hour=10,
+            business=self.business_b,
+            client=self.client_b,
+            service=self.service_b,
+        )
+
+        response = self.client.post(
+            reverse("agenda:reminders_mark_all"),
+            {"fecha": self.tomorrow.isoformat()},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('agenda:reminders')}?fecha={self.tomorrow.isoformat()}",
+        )
+        pending.refresh_from_db()
+        already_reminded.refresh_from_db()
+        other_day.refresh_from_db()
+        other_business.refresh_from_db()
+        self.assertIsNotNone(pending.reminded_at)
+        self.assertEqual(already_reminded.reminded_at, already_reminded_at)
+        self.assertIsNone(other_day.reminded_at)
+        self.assertIsNone(other_business.reminded_at)
+
+    def test_mark_all_reminders_is_post_only(self):
+        response = self.client.get(reverse("agenda:reminders_mark_all"))
+
+        self.assertEqual(response.status_code, 405)
+
     def test_reminder_action_is_scoped_and_post_only(self):
         appointment = self._appointment(day=self.tomorrow, hour=10)
         other_appointment = self._appointment(
@@ -1269,6 +1309,28 @@ class IncomeTests(AgendaTestBase):
         self.assertEqual(response.context["completed_count"], 0)
         self.assertEqual(response.context["income_total"], Decimal("0.00"))
         self.assertContains(response, "No hay turnos completados")
+
+    def test_income_shows_occupancy_and_no_show_rate(self):
+        self._create_week_schedule()
+        self._appointment(
+            day=self.today,
+            hour=9,
+            status=Appointment.STATUS_COMPLETED,
+        )
+        self._appointment(
+            day=self.today,
+            hour=11,
+            status=Appointment.STATUS_NO_SHOW,
+        )
+
+        response = self.client.get(reverse("agenda:income"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["booked_minutes"], 120)
+        self.assertEqual(response.context["no_show_rate"], 50.0)
+        self.assertContains(response, "Ocupación")
+        self.assertContains(response, "Tasa de ausencias")
+        self.assertContains(response, "50,0%")
 
     def test_income_handles_invalid_month(self):
         for value in ("invalido", "2026-13", "2026-02-31"):

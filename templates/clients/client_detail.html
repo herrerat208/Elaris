@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load elaris %}
 
 {% block title %}{{ client.name }} · Elaris{% endblock %}
 
@@ -33,6 +34,9 @@
 
       <div class="flex flex-wrap gap-2">
         <a href="{% url 'clients:edit' client.pk %}" class="btn-secondary">Editar datos</a>
+        {% if client.whatsapp_url %}
+          <a href="{{ client.whatsapp_url }}" target="_blank" rel="noopener" class="btn-secondary">WhatsApp</a>
+        {% endif %}
         {% if client.is_active %}
           <a href="{% url 'agenda:appointment_create' %}?cliente={{ client.pk }}" class="btn-primary">+ Nuevo turno</a>
           <form method="post" action="{% url 'clients:archive' client.pk %}" data-confirm="¿Archivar a {{ client.name }}? Su historial va a quedar guardado.">
@@ -46,6 +50,46 @@
           </form>
         {% endif %}
       </div>
+    </div>
+
+    <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article class="card p-5">
+        <p class="eyebrow">Última visita</p>
+        {% if last_visit %}
+          <a href="{% url 'agenda:appointment_detail' last_visit.pk %}" class="mt-1 block font-display text-2xl text-ink-deep transition hover:text-ink">
+            {{ last_visit.start_at|date:"d/m/Y" }}
+          </a>
+          <p class="mt-1 text-xs leading-5 text-ink-soft">Hace {{ last_visit.start_at|timesince }}</p>
+        {% else %}
+          <p class="mt-1 font-display text-2xl text-ink-soft">—</p>
+          <p class="mt-1 text-xs leading-5 text-ink-soft">Sin visitas completadas</p>
+        {% endif %}
+      </article>
+
+      <article class="card p-5">
+        <p class="eyebrow">Próximo turno</p>
+        {% if next_appointment %}
+          <a href="{% url 'agenda:appointment_detail' next_appointment.pk %}" class="mt-1 block font-display text-2xl text-ink-deep transition hover:text-ink">
+            {{ next_appointment.start_at|date:"d/m" }}
+          </a>
+          <p class="mt-1 text-xs leading-5 text-ink-soft">{{ next_appointment.start_at|date:"H:i" }} · {{ next_appointment.service_name }}</p>
+        {% else %}
+          <p class="mt-1 font-display text-2xl text-ink-soft">—</p>
+          <p class="mt-1 text-xs leading-5 text-ink-soft">Sin turno agendado</p>
+        {% endif %}
+      </article>
+
+      <article class="card p-5">
+        <p class="eyebrow">Total facturado</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ total_spent|ars }}</p>
+        <p class="mt-2 text-xs leading-5 text-ink-soft">{{ completed_count }} turno{{ completed_count|pluralize }} completado{{ completed_count|pluralize }}</p>
+      </article>
+
+      <article class="card p-5">
+        <p class="eyebrow">Ausencias</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ no_show_count }}</p>
+        <p class="mt-2 text-xs leading-5 text-ink-soft">ausencia{{ no_show_count|pluralize }} registrada{{ no_show_count|pluralize }}</p>
+      </article>
     </div>
 
     <div class="mt-8 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
@@ -117,8 +161,18 @@
         </section>
 
         <section class="card p-6">
-          <p class="eyebrow">Historial</p>
-          <h2 class="mt-1 font-display text-2xl">Turnos anteriores</h2>
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="eyebrow">Historial</p>
+              <h2 class="mt-1 font-display text-2xl">Turnos anteriores</h2>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="chip">{{ completed_count }} completado{{ completed_count|pluralize }}</span>
+              {% if last_visit and client.is_active %}
+                <a href="{% url 'agenda:appointment_repeat' last_visit.pk %}" class="link text-xs">Repetir último</a>
+              {% endif %}
+            </div>
+          </div>
 
           <div class="mt-4 divide-y divide-ink/10">
             {% for appointment in history %}
