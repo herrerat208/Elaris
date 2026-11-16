@@ -225,7 +225,7 @@ Variables necesarias en Production:
 ```bash
 DJANGO_EMAIL_HOST=smtp-relay.brevo.com
 DJANGO_EMAIL_PORT=587
-DJANGO_EMAIL_HOST_USER=tu@email.com
+DJANGO_EMAIL_HOST_USER=el-usuario-smtp-que-muestra-brevo
 DJANGO_EMAIL_HOST_PASSWORD=tu-clave-smtp
 DJANGO_EMAIL_USE_TLS=1
 DEFAULT_FROM_EMAIL=Elaris <tu@email.com>
@@ -233,7 +233,7 @@ DEFAULT_FROM_EMAIL=Elaris <tu@email.com>
 
 Opciones:
 
-- **Brevo** (recomendado si todavía no hay dominio): plan free, verificás un email como remitente y generás una clave SMTP. Permite enviar a cualquier destinatario.
+- **Brevo** (recomendado si todavía no hay dominio): plan free, verificás un email como remitente y generás una clave SMTP. El usuario SMTP es el que muestra Brevo en **Transactional → SMTP & API** (suele terminar en `@smtp-brevo.com`), no tu email de login. Permite enviar a cualquier destinatario.
 - **Resend** (recomendado con dominio propio): verificás el dominio y usás `smtp.resend.com`, usuario `resend` y la API key como clave.
 - **Gmail**: `smtp.gmail.com`, puerto 587, tu email y una contraseña de aplicación.
 
