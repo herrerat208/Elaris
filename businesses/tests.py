@@ -1,8 +1,13 @@
+from datetime import datetime, time, timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import User
+from agenda.models import Appointment
 from catalog.models import ServiceTemplate, Specialty
+from clients.models import Client
 
 from .models import Business, Service
 
@@ -349,3 +354,99 @@ class DashboardTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.service_b.refresh_from_db()
         self.assertTrue(self.service_b.is_active)
+
+    def test_dashboard_summarizes_tomorrow_reminders(self):
+        client = Client.objects.create(
+            business=self.business_a,
+            name="Clienta de mañana",
+            phone="11 5555 1111",
+        )
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        start_at = timezone.make_aware(
+            datetime.combine(tomorrow, time(10, 0)),
+            timezone.get_current_timezone(),
+        )
+        Appointment.objects.create(
+            business=self.business_a,
+            client=client,
+            service=self.service_a,
+            service_name=self.service_a.name,
+            duration_minutes=self.service_a.duration_minutes,
+            price=self.service_a.price,
+            start_at=start_at,
+            end_at=start_at + timedelta(minutes=self.service_a.duration_minutes),
+        )
+        Appointment.objects.create(
+            business=self.business_a,
+            client=client,
+            service=self.service_a,
+            service_name=self.service_a.name,
+            duration_minutes=self.service_a.duration_minutes,
+            price=self.service_a.price,
+            start_at=start_at + timedelta(hours=2),
+            end_at=start_at + timedelta(hours=3),
+            reminded_at=timezone.now(),
+        )
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(reverse("businesses:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["tomorrow_reminders_count"], 2)
+        self.assertEqual(response.context["tomorrow_pending_reminders_count"], 1)
+        self.assertContains(response, "Recordatorios de mañana")
+        self.assertContains(response, "2 turnos agendados y 1 sin recordar")
+        self.assertContains(response, reverse("agenda:reminders"))
+
+
+class SettingsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="settings@example.com",
+            password="ClaveSegura123!",
+        )
+        self.unas = Specialty.objects.get(slug="unas")
+        self.business = Business.objects.create(
+            owner=self.user,
+            name="Nails Settings",
+        )
+        self.business.specialties.set([self.unas])
+        self.client.force_login(self.user)
+
+    def test_settings_updates_business_name_and_whatsapp(self):
+        response = self.client.post(
+            reverse("businesses:settings"),
+            {
+                "form_name": "business",
+                "name": "  Nails Actualizado  ",
+                "whatsapp": " 11 4444 5555 ",
+                "specialties": [self.unas.pk],
+            },
+        )
+
+        self.assertRedirects(response, reverse("businesses:settings"))
+        self.business.refresh_from_db()
+        self.assertEqual(self.business.name, "Nails Actualizado")
+        self.assertEqual(self.business.whatsapp, "11 4444 5555")
+
+    def test_settings_allows_empty_whatsapp(self):
+        self.business.whatsapp = "11 4444 5555"
+        self.business.save(update_fields=("whatsapp", "updated_at"))
+
+        response = self.client.post(
+            reverse("businesses:settings"),
+            {
+                "form_name": "business",
+                "name": "Nails Settings",
+                "whatsapp": "",
+                "specialties": [self.unas.pk],
+            },
+        )
+
+        self.assertRedirects(response, reverse("businesses:settings"))
+        self.business.refresh_from_db()
+        self.assertEqual(self.business.whatsapp, "")
+        self.assertContains(
+            self.client.get(reverse("businesses:settings")),
+            "Tu WhatsApp se agrega al final de los recordatorios",
+        )

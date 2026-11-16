@@ -14,7 +14,7 @@
         <p class="eyebrow">Resumen</p>
         <h1 class="mt-2 font-display text-4xl leading-none sm:text-5xl">Ingresos</h1>
         <p class="mt-3 max-w-xl text-sm leading-6 text-ink-soft">
-          Lo que facturaste con los turnos completados. Los turnos cancelados o con ausencia no se suman.
+          Lo que facturaste con los turnos completados. El cobro registrado se muestra aparte y los turnos cancelados o con ausencia no se suman.
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -24,11 +24,21 @@
       </div>
     </div>
 
-    <div class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <article class="card p-5">
         <p class="eyebrow">Ingresos</p>
         <p class="stat-value text-3xl sm:text-4xl">{{ income_total|ars }}</p>
         <p class="mt-2 text-xs text-ink-soft">{{ completed_count }} turno{{ completed_count|pluralize }} completado{{ completed_count|pluralize }}</p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">Cobrado</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ collected_total|ars }}</p>
+        <p class="mt-2 text-xs text-ink-soft">cobros registrados en turnos completados</p>
+      </article>
+      <article class="card p-5">
+        <p class="eyebrow">Por cobrar</p>
+        <p class="stat-value text-3xl sm:text-4xl">{{ pending_collection_total|ars }}</p>
+        <p class="mt-2 text-xs text-ink-soft">diferencia sobre el precio de cada turno</p>
       </article>
       <article class="card p-5">
         <p class="eyebrow">Ticket promedio</p>
@@ -115,6 +125,12 @@
                   </p>
                   <p class="mt-1 text-sm font-semibold break-words text-ink-deep">{{ appointment.client.name }}</p>
                   <p class="mt-0.5 text-xs break-words text-ink-soft">{{ appointment.service_name }}</p>
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <span class="badge {{ appointment.payment_badge_class }}">{{ appointment.payment_status_label }}</span>
+                    {% if appointment.amount_paid is not None %}
+                      <span class="text-xs text-ink-soft">{{ appointment.amount_paid|ars }}{% if appointment.payment_method %} · {{ appointment.get_payment_method_display }}{% endif %}</span>
+                    {% endif %}
+                  </div>
                 </div>
                 <p class="shrink-0 text-sm font-semibold text-ink-deep">{{ appointment.price_display }}</p>
               </div>
@@ -122,12 +138,13 @@
           {% endfor %}
         </div>
         <div class="mt-5 hidden overflow-x-auto md:block">
-          <table class="w-full min-w-[40rem] text-left text-sm">
+          <table class="w-full min-w-[50rem] text-left text-sm">
             <thead>
               <tr class="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink-soft">
                 <th class="pb-3 pr-4 font-semibold">Fecha</th>
                 <th class="pb-3 pr-4 font-semibold">Cliente</th>
                 <th class="pb-3 pr-4 font-semibold">Servicio</th>
+                <th class="pb-3 pr-4 font-semibold">Cobro</th>
                 <th class="pb-3 text-right font-semibold">Precio</th>
               </tr>
             </thead>
@@ -139,6 +156,12 @@
                     <a href="{% url 'agenda:appointment_detail' appointment.pk %}" class="font-semibold text-ink-deep hover:underline">{{ appointment.client.name }}</a>
                   </td>
                   <td class="py-3 pr-4 text-ink-soft">{{ appointment.service_name }}</td>
+                  <td class="py-3 pr-4">
+                    <span class="badge {{ appointment.payment_badge_class }}">{{ appointment.payment_status_label }}</span>
+                    {% if appointment.amount_paid is not None %}
+                      <span class="mt-1 block text-xs text-ink-soft">{{ appointment.amount_paid|ars }}{% if appointment.payment_method %} · {{ appointment.get_payment_method_display }}{% endif %}</span>
+                    {% endif %}
+                  </td>
                   <td class="py-3 text-right font-semibold text-ink-deep">{{ appointment.price_display }}</td>
                 </tr>
               {% endfor %}

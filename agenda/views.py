@@ -539,10 +539,7 @@ def appointment_repeat(request, pk):
     )
     params = {"cliente": appointment.client_id}
     service = appointment.service
-    if (
-        service.is_active
-        and business.specialties.filter(pk=service.specialty_id).exists()
-    ):
+    if service.is_active and business.specialties.filter(pk=service.specialty_id).exists():
         params["servicio"] = service.pk
     else:
         messages.info(
@@ -590,9 +587,7 @@ def appointment_payment(request, pk):
     if form.is_valid():
         appointment.amount_paid = form.cleaned_data["amount_paid"]
         appointment.payment_method = form.cleaned_data["payment_method"] or ""
-        appointment.save(
-            update_fields=("amount_paid", "payment_method", "updated_at")
-        )
+        appointment.save(update_fields=("amount_paid", "payment_method", "updated_at"))
         if appointment.amount_paid is None:
             messages.success(request, "Cobro sin registrar.")
         else:
@@ -750,9 +745,7 @@ def income(request):
     income_total = completed.aggregate(total=Sum("price"))["total"] or Decimal("0.00")
     average_ticket = completed.aggregate(average=Avg("price"))["average"] or Decimal("0.00")
     missing_price_count = completed.filter(price__isnull=True).count()
-    collected_total = completed.aggregate(total=Sum("amount_paid"))["total"] or Decimal(
-        "0.00"
-    )
+    collected_total = completed.aggregate(total=Sum("amount_paid"))["total"] or Decimal("0.00")
     pending_collection_total = Decimal("0.00")
     for appointment in completed:
         if appointment.price is not None:
@@ -788,9 +781,7 @@ def income(request):
         ).exclude(status=Appointment.STATUS_CANCELLED)
     )
     occupancy_percent = (
-        round((booked_minutes / available_minutes) * 100, 1)
-        if available_minutes
-        else None
+        round((booked_minutes / available_minutes) * 100, 1) if available_minutes else None
     )
     no_show_rate = (
         round((no_show_count / (completed_count + no_show_count)) * 100, 1)

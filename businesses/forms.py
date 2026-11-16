@@ -30,7 +30,7 @@ class BusinessSettingsForm(forms.Form):
                 "inputmode": "tel",
             }
         ),
-        help_text="Se incluye al final de los recordatorios para que tus clientes puedan responderte.",
+        help_text="Se agrega al final de los recordatorios para que tus clientes te respondan.",
     )
     specialties = forms.ModelMultipleChoiceField(
         label="Rubros que ofrecés",
@@ -68,11 +68,14 @@ class BusinessSettingsForm(forms.Form):
         current_ids = set(self.business.specialties.values_list("pk", flat=True))
         selected_ids = {specialty.pk for specialty in specialties}
         removed_ids = current_ids - selected_ids
-        if removed_ids and Service.objects.filter(
-            business=self.business,
-            specialty_id__in=removed_ids,
-            is_active=True,
-        ).exists():
+        if (
+            removed_ids
+            and Service.objects.filter(
+                business=self.business,
+                specialty_id__in=removed_ids,
+                is_active=True,
+            ).exists()
+        ):
             raise forms.ValidationError(
                 "No podés quitar un rubro con servicios activos. "
                 "Archivá o mové esos servicios primero."

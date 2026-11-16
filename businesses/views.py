@@ -405,14 +405,11 @@ def settings(request):
 
     if business_form.is_bound:
         selected_specialty_ids = {
-            int(value)
-            for value in business_form.data.getlist("specialties")
-            if value.isdigit()
+            int(value) for value in business_form.data.getlist("specialties") if value.isdigit()
         }
     else:
         selected_specialty_ids = {
-            int(value)
-            for value in business_form.initial.get("specialties", [])
+            int(value) for value in business_form.initial.get("specialties", [])
         }
 
     return render(
@@ -480,9 +477,8 @@ def export_clients(request):
 @business_required
 def export_appointments(request):
     rows = []
-    appointments = (
-        request.business.appointments.select_related("client", "service")
-        .order_by("start_at", "id")
+    appointments = request.business.appointments.select_related("client", "service").order_by(
+        "start_at", "id"
     )
     for appointment in appointments:
         rows.append(

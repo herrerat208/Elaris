@@ -7,9 +7,14 @@ db.sqlite3
 
 # Django
 .env
+.env.local
+.env.production
 staticfiles/
 media/
 *.log
+
+# Vercel
+.vercel/
 
 # Frontend
 node_modules/

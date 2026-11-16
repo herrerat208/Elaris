@@ -14,10 +14,11 @@
 
 - Django 5.2 LTS + templates server-side + HTMX + Tailwind CSS 4.
 - PostgreSQL en producción. SQLite queda como fallback explícito para desarrollo local cuando no hay `DATABASE_URL`.
+- El deploy de producción usa Vercel (preset Django) y Neon como PostgreSQL del Marketplace. Vercel tiene filesystem de solo lectura, así que SQLite no se usa en producción.
 - Sin SPA ni API REST para el MVP.
 - Autenticación por email y contraseña con modelo de usuario propio (`accounts.User`).
 - Tailwind se compila con la CLI y se sirve como archivo estático; no se usa CDN para el CSS de la app.
-- Gunicorn + WhiteNoise para servir la app en producción.
+- Gunicorn + WhiteNoise para servir la app fuera de Vercel; en Vercel la app corre como función serverless con `collectstatic` en el build.
 
 ## Datos y aislamiento
 
@@ -25,7 +26,9 @@
 - Las consultas de negocio se filtran siempre por la profesional autenticada. Las vistas de edición usan `get_object_or_404(..., business=business)` para impedir acceso cruzado.
 - Se agregan tests de aislamiento entre dos negocios.
 - `User` 1:1 `Business`; `Business` M2M `Specialty`; `Business` 1:N `Service`; `Business` 1:N `Client`; `Business` 1:N `Appointment`, `ScheduleBlock` y `TimeOff`.
+- `Business` guarda un `whatsapp` opcional que se agrega al final de los recordatorios.
 - `Appointment` guarda snapshot de `service_name`, `duration_minutes` y `price`. Así el historial no cambia si después se edita el servicio.
+- `Appointment` también guarda `reminded_at`, `amount_paid` y `payment_method` para el seguimiento de recordatorios y cobros.
 - En PostgreSQL, la migración `agenda.0003_exclude_overlapping_appointments` agrega `btree_gist` y una restricción `EXCLUDE` sobre `business_id` y `tstzrange(start_at, end_at, '[)')`, excluyendo turnos cancelados. SQLite no soporta esa restricción: en desarrollo la validación de superposición es de aplicación.
 
 ## Catálogo inicial
@@ -75,20 +78,44 @@
 - Los turnos se muestran en la agenda semanal, la agenda diaria, la ficha de cliente, el panel y el detalle del turno.
 - La agenda semanal no cuenta turnos cancelados; el detalle diario sí los muestra para conservar contexto.
 
+## Cobros
+
+- Un turno puede registrar `amount_paid` y `payment_method`.
+- Los medios de pago son efectivo, transferencia y otro.
+- Los estados de cobro se derivan:
+  - sin monto: “Sin registrar”;
+  - monto en cero: “Pendiente”;
+  - monto mayor a cero y menor al precio: “Seña”;
+  - monto mayor o igual al precio: “Pagado”.
+- Si se ingresa un monto, el medio de pago es obligatorio. Si se ingresa un medio, el monto también.
+- El monto no puede superar el precio del turno cuando el turno tiene precio.
+- Dejar monto y medio vacíos borra el cobro registrado.
+- Se puede registrar una seña antes del turno; el cobro se conserva al cambiar de estado.
+- El cobro no modifica el ingreso facturado: son dos lecturas distintas del mismo turno.
+
 ## Ingresos
 
 - El resumen de ingresos trabaja por mes calendario.
 - Solo se suman turnos con estado completado.
 - Un turno completado sin precio no suma al total ni al ticket promedio.
 - El detalle incluye cantidad de turnos completados, ticket promedio, cancelados, ausencias y agrupación por rubro y servicio.
-- No hay liquidación de comisiones, impuestos ni medios de pago en el MVP.
+- El resumen muestra por separado lo facturado, lo cobrado y lo pendiente de cobro.
+- Lo cobrado se toma de `amount_paid` de los turnos completados; lo pendiente es la diferencia contra el precio.
+- Lo cobrado en un turno completado sin precio se cuenta como cobrado, pero no altera el ingreso facturado.
+- No hay liquidación de comisiones ni impuestos en el MVP.
 
 ## Recordatorios
 
 - El recordatorio es manual.
+- Se prepara desde `/panel/recordatorios/` o desde el detalle del turno.
+- La página muestra por defecto los turnos de mañana y permite navegar por fecha.
+- Solo lista turnos programados; los recordados siguen visibles para poder desmarcarlos.
 - Elaris arma un texto con el nombre del cliente, servicio, negocio, fecha y hora.
-- La profesional lo copia desde el detalle del turno y lo envía por WhatsApp.
-- No se integra la API de WhatsApp en el MVP.
+- Si el negocio tiene WhatsApp cargado, se agrega al final del mensaje.
+- El botón “Abrir WhatsApp” usa `wa.me` con el teléfono del cliente normalizado. Si no hay teléfono, solo se puede copiar el mensaje.
+- “Marcar recordado” guarda `reminded_at`; se puede desmarcar.
+- El panel avisa cuántos turnos de mañana están agendados y cuántos siguen sin recordar.
+- No se integra la API de WhatsApp en el MVP: no hay envío automático.
 
 ## Branding
 
@@ -102,7 +129,7 @@
 - Cuentas de clientes o login de clientes.
 - Reserva online, links de cancelación/reprogramación y páginas públicas.
 - Branding por negocio, logo propio, galería o temas personalizados.
-- Mercado Pago, señas, suscripciones, planes y límites.
+- Mercado Pago, cobros online, suscripciones, planes y límites.
 - Equipo, múltiples profesionales por negocio o múltiples negocios por cuenta.
 - Reseñas, promociones, fidelidad y analítica avanzada.
 - Integración con la API de WhatsApp.

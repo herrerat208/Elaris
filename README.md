@@ -4,7 +4,7 @@ Elaris es el espacio de gestión para profesionales de la belleza. La marca es s
 
 ## Estado actual
 
-El MVP está implementado de punta a punta: cuenta, onboarding, servicios, clientes, horarios, agenda de turnos, estados, disponibilidad y resumen de ingresos. La app funciona con SQLite para desarrollo local y con PostgreSQL en producción.
+El MVP está implementado de punta a punta: cuenta, onboarding, servicios, clientes, horarios, agenda de turnos, estados, disponibilidad, recordatorios manuales, cobros y resumen de ingresos. La app funciona con SQLite para desarrollo local y con PostgreSQL en producción. En Vercel se usa Neon como base PostgreSQL porque el sistema de archivos serverless es de solo lectura.
 
 ## Funcionalidades
 
@@ -47,11 +47,22 @@ El MVP está implementado de punta a punta: cuenta, onboarding, servicios, clien
 - Vista semanal y vista diaria con accesos a la ficha del turno.
 - Panel de disponibilidad con actualización por HTMX, sin recargar la página.
 - Recordatorio manual: Elaris arma el mensaje y lo copia para enviarlo por WhatsApp. No hay integración con la API de WhatsApp.
+- Página de recordatorios con los turnos del día siguiente, cantidad pendiente y recordada, envío por WhatsApp y marca de “recordado”.
+- El WhatsApp del negocio se agrega al final del mensaje para que el cliente pueda responder.
+
+### Cobros
+
+- Registro del monto cobrado y del medio de pago por turno.
+- Estados de cobro: sin registrar, pendiente, seña y pagado.
+- Se puede registrar una seña o el total, y borrar el cobro dejando el monto vacío.
+- El monto no puede superar el precio del turno.
+- El cobro es independiente del ingreso facturado: el resumen de ingresos sigue calculándose por el precio de los turnos completados.
 
 ### Panel e ingresos
 
 - Panel con turnos del día, próximos turnos, clientes activos, ingresos del mes, servicios y checklist de puesta en marcha.
-- Resumen mensual de ingresos, ticket promedio, turnos cancelados, ausencias y detalle por rubro y servicio.
+- Aviso de recordatorios de mañana con acceso a la página de recordatorios.
+- Resumen mensual de ingresos, cobrado, pendiente de cobro, ticket promedio, turnos cancelados, ausencias y detalle por rubro y servicio.
 - Solo los turnos completados con precio suman ingresos.
 - Los turnos cancelados o marcados como “no asistió” no suman.
 
@@ -60,6 +71,7 @@ El MVP está implementado de punta a punta: cuenta, onboarding, servicios, clien
 - Python 3.13
 - Django 5.2 LTS
 - PostgreSQL en producción, SQLite como fallback local
+- Vercel como hosting y Neon como PostgreSQL administrado en producción
 - Tailwind CSS 4
 - HTMX
 - Gunicorn y WhiteNoise para producción
@@ -135,6 +147,7 @@ Abrí `http://localhost:8000/`. Si estás en Windows con WSL y `localhost` no re
 - `/panel/` panel principal
 - `/panel/agenda/` agenda semanal
 - `/panel/agenda/dia/` agenda diaria
+- `/panel/recordatorios/` recordatorios y mensajes para WhatsApp
 - `/panel/agenda/turnos/nuevo/` nuevo turno
 - `/panel/clientes/` clientes
 - `/panel/servicios/` servicios
@@ -153,7 +166,7 @@ Abrí `http://localhost:8000/`. Si estás en Windows con WSL y `localhost` no re
 npm run css:build
 ```
 
-La suite incluye tests de onboarding, servicios, clientes, horarios, disponibilidad, turnos, estados, ingresos, aislamiento entre negocios y rutas protegidas.
+La suite incluye tests de onboarding, servicios, clientes, horarios, disponibilidad, turnos, estados, recordatorios, cobros, ingresos, aislamiento entre negocios y rutas protegidas.
 
 ## PostgreSQL en producción
 
@@ -177,6 +190,31 @@ gunicorn config.wsgi:application
 
 La migración `agenda.0003_exclude_overlapping_appointments` agrega la extensión `btree_gist` y una restricción `EXCLUDE` para impedir turnos superpuestos a nivel de base. El usuario de la base necesita permisos para crear la extensión o un administrador debe crearla antes de migrar. Si ya existen turnos superpuestos, la migración va a fallar hasta resolverlos.
 
+### Vercel + Neon
+
+El proyecto `elaris` en Vercel usa el preset Django y una base PostgreSQL de Neon conectada desde el Marketplace. En Vercel el sistema de archivos es de solo lectura: SQLite no puede usarse en producción porque falla al guardar usuarios, sesiones, turnos y cobros.
+
+La integración de Neon inyecta `DATABASE_URL` (pooled). Además hay que configurar en Production:
+
+```bash
+DJANGO_SECRET_KEY=una-clave-larga-y-segura
+DJANGO_DEBUG=0
+DJANGO_ALLOWED_HOSTS=elaris-six-bice.vercel.app,elaris-th208.vercel.app
+DJANGO_CSRF_TRUSTED_ORIGINS=https://elaris-six-bice.vercel.app,https://elaris-th208.vercel.app
+```
+
+Para aplicar migraciones a la base de producción desde una copia local:
+
+```bash
+npx vercel env pull .env.production --environment=production
+set -a
+source .env.production
+set +a
+.venv/bin/python manage.py migrate
+```
+
+Después de cambiar el modelo, generá y commiteá la migración, aplicála en producción y volvé a desplegar. Si `DJANGO_DEBUG=0` y falta `DJANGO_SECRET_KEY` o `DATABASE_URL`, la app no arranca a propósito.
+
 ## Documentación
 
 - `docs/DECISIONS.md`: decisiones de producto, datos, catálogo y brand.
@@ -186,7 +224,7 @@ La migración `agenda.0003_exclude_overlapping_appointments` agrega la extensió
 - Cuentas de clientes o login de clientes.
 - Reserva online, links de cancelación o reprogramación y páginas públicas.
 - Branding por negocio, logo propio, galería o temas personalizados.
-- Mercado Pago, señas, suscripciones, planes y límites.
+- Mercado Pago, cobros online, suscripciones, planes y límites.
 - Equipo, múltiples profesionales por negocio o múltiples negocios por cuenta.
 - Reseñas, promociones, fidelidad y analítica avanzada.
 - Integración con la API de WhatsApp; los recordatorios son manuales.

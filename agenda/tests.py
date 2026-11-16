@@ -83,6 +83,9 @@ class AgendaTestBase(TestCase):
         business=None,
         client=None,
         service=None,
+        amount_paid=None,
+        payment_method="",
+        reminded_at=None,
     ):
         business = business or self.business_a
         client = client or self.client_a
@@ -98,6 +101,9 @@ class AgendaTestBase(TestCase):
             start_at=start_at,
             end_at=start_at + timedelta(minutes=service.duration_minutes),
             status=status,
+            amount_paid=amount_paid,
+            payment_method=payment_method,
+            reminded_at=reminded_at,
         )
 
     def _formset_data(self, rows, initial_forms=0):
@@ -118,6 +124,7 @@ class AgendaAccessTests(AgendaTestBase):
         for url in (
             reverse("agenda:week"),
             reverse("agenda:day"),
+            reverse("agenda:reminders"),
             reverse("agenda:schedule"),
             reverse("agenda:income"),
         ):
@@ -135,6 +142,8 @@ class AgendaAccessTests(AgendaTestBase):
 
         for url in (
             reverse("agenda:week"),
+            reverse("agenda:day"),
+            reverse("agenda:reminders"),
             reverse("agenda:schedule"),
             reverse("agenda:income"),
         ):
@@ -856,6 +865,293 @@ class CalendarTests(AgendaTestBase):
         self.assertEqual(response.status_code, 200)
 
 
+class ReminderTests(AgendaTestBase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_a)
+        self.tomorrow = self.today + timedelta(days=1)
+
+    def test_reminders_default_to_tomorrow_and_list_scheduled_only(self):
+        pending = self._appointment(day=self.tomorrow, hour=10)
+        reminded = self._appointment(
+            day=self.tomorrow,
+            hour=12,
+            reminded_at=timezone.now(),
+        )
+        self._appointment(
+            day=self.tomorrow,
+            hour=14,
+            status=Appointment.STATUS_COMPLETED,
+        )
+        self._appointment(
+            day=self.tomorrow,
+            hour=16,
+            status=Appointment.STATUS_CANCELLED,
+        )
+        other_business = self._appointment(
+            day=self.tomorrow,
+            hour=10,
+            business=self.business_b,
+            client=self.client_b,
+            service=self.service_b,
+        )
+
+        response = self.client.get(reverse("agenda:reminders"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["selected_date"], self.tomorrow)
+        self.assertEqual(
+            list(response.context["appointments"]),
+            [pending, reminded],
+        )
+        self.assertEqual(response.context["pending_count"], 1)
+        self.assertEqual(response.context["reminded_count"], 1)
+        self.assertContains(response, pending.client.name)
+        self.assertNotContains(response, other_business.client.name)
+        self.assertContains(response, "Pendiente")
+        self.assertContains(response, "Recordado")
+
+    def test_reminders_filter_by_date_and_ignore_invalid_date(self):
+        target_day = self.today + timedelta(days=5)
+        appointment = self._appointment(day=target_day, hour=11)
+
+        response = self.client.get(
+            reverse("agenda:reminders"),
+            {"fecha": target_day.isoformat()},
+        )
+
+        self.assertEqual(response.context["selected_date"], target_day)
+        self.assertContains(response, appointment.client.name)
+
+        response = self.client.get(
+            reverse("agenda:reminders"),
+            {"fecha": "no-es-fecha"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["selected_date"], self.tomorrow)
+
+    def test_reminder_text_and_whatsapp_link_use_client_and_business_data(self):
+        self.business_a.whatsapp = "11 4444 5555"
+        self.business_a.save(update_fields=("whatsapp", "updated_at"))
+        appointment = self._appointment(day=self.tomorrow, hour=10)
+
+        text = appointment.reminder_text
+
+        self.assertIn("Hola Cliente A", text)
+        self.assertIn("Semi permanente", text)
+        self.assertIn("Agenda A", text)
+        self.assertIn("11 4444 5555", text)
+        self.assertTrue(
+            appointment.whatsapp_reminder_url.startswith("https://wa.me/5491155551111?text=")
+        )
+        self.assertIn("Hola%20Cliente%20A", appointment.whatsapp_reminder_url)
+
+        self.client_a.phone = ""
+        self.client_a.save(update_fields=("phone", "updated_at"))
+        appointment.refresh_from_db()
+
+        self.assertEqual(appointment.whatsapp_reminder_url, "")
+
+    def test_mark_reminded_toggles_and_redirects(self):
+        appointment = self._appointment(day=self.tomorrow, hour=10)
+        url = reverse("agenda:appointment_reminded", args=[appointment.pk])
+
+        response = self.client.post(url)
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+        appointment.refresh_from_db()
+        self.assertIsNotNone(appointment.reminded_at)
+        self.assertTrue(appointment.is_reminded)
+
+        response = self.client.post(
+            url,
+            {"next": reverse("agenda:reminders")},
+        )
+
+        self.assertRedirects(response, reverse("agenda:reminders"))
+        appointment.refresh_from_db()
+        self.assertIsNone(appointment.reminded_at)
+
+    def test_mark_reminded_rejects_unsafe_next_url(self):
+        appointment = self._appointment(day=self.tomorrow, hour=10)
+
+        response = self.client.post(
+            reverse("agenda:appointment_reminded", args=[appointment.pk]),
+            {"next": "https://example.com/phishing"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+
+    def test_reminder_action_is_scoped_and_post_only(self):
+        appointment = self._appointment(day=self.tomorrow, hour=10)
+        other_appointment = self._appointment(
+            day=self.tomorrow,
+            hour=10,
+            business=self.business_b,
+            client=self.client_b,
+            service=self.service_b,
+        )
+
+        response = self.client.get(reverse("agenda:appointment_reminded", args=[appointment.pk]))
+        other_response = self.client.post(
+            reverse("agenda:appointment_reminded", args=[other_appointment.pk])
+        )
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(other_response.status_code, 404)
+        other_appointment.refresh_from_db()
+        self.assertIsNone(other_appointment.reminded_at)
+
+
+class PaymentTests(AgendaTestBase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_a)
+
+    def test_register_partial_payment(self):
+        appointment = self._appointment(day=self.future_day, hour=10)
+
+        response = self.client.post(
+            reverse("agenda:appointment_payment", args=[appointment.pk]),
+            {"amount_paid": "5000", "payment_method": Appointment.PAYMENT_METHOD_CASH},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+        appointment.refresh_from_db()
+        self.assertEqual(appointment.amount_paid, Decimal("5000.00"))
+        self.assertEqual(appointment.payment_method, Appointment.PAYMENT_METHOD_CASH)
+        self.assertEqual(appointment.payment_status_key, "deposit")
+        self.assertEqual(appointment.payment_status_label, "Seña")
+
+    def test_register_full_payment(self):
+        appointment = self._appointment(day=self.future_day, hour=10)
+
+        response = self.client.post(
+            reverse("agenda:appointment_payment", args=[appointment.pk]),
+            {
+                "amount_paid": "12000",
+                "payment_method": Appointment.PAYMENT_METHOD_TRANSFER,
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+        appointment.refresh_from_db()
+        self.assertEqual(appointment.amount_paid, Decimal("12000.00"))
+        self.assertEqual(appointment.payment_status_key, "paid")
+        self.assertEqual(appointment.payment_status_label, "Pagado")
+
+    def test_payment_requires_method_when_amount_is_present(self):
+        appointment = self._appointment(day=self.future_day, hour=10)
+
+        response = self.client.post(
+            reverse("agenda:appointment_payment", args=[appointment.pk]),
+            {"amount_paid": "5000", "payment_method": ""},
+            follow=True,
+        )
+
+        self.assertContains(response, "Elegí cómo se pagó.")
+        appointment.refresh_from_db()
+        self.assertIsNone(appointment.amount_paid)
+        self.assertEqual(appointment.payment_method, "")
+
+    def test_payment_requires_amount_when_method_is_present(self):
+        appointment = self._appointment(day=self.future_day, hour=10)
+
+        response = self.client.post(
+            reverse("agenda:appointment_payment", args=[appointment.pk]),
+            {"amount_paid": "", "payment_method": Appointment.PAYMENT_METHOD_CASH},
+            follow=True,
+        )
+
+        self.assertContains(response, "Ingresá el monto cobrado.")
+        appointment.refresh_from_db()
+        self.assertIsNone(appointment.amount_paid)
+
+    def test_payment_cannot_exceed_appointment_price(self):
+        appointment = self._appointment(day=self.future_day, hour=10)
+
+        response = self.client.post(
+            reverse("agenda:appointment_payment", args=[appointment.pk]),
+            {"amount_paid": "15000", "payment_method": Appointment.PAYMENT_METHOD_CASH},
+            follow=True,
+        )
+
+        self.assertContains(response, "El monto no puede superar el precio del turno.")
+        appointment.refresh_from_db()
+        self.assertIsNone(appointment.amount_paid)
+
+    def test_clear_registered_payment(self):
+        appointment = self._appointment(
+            day=self.future_day,
+            hour=10,
+            amount_paid=Decimal("5000.00"),
+            payment_method=Appointment.PAYMENT_METHOD_CASH,
+        )
+
+        response = self.client.post(
+            reverse("agenda:appointment_payment", args=[appointment.pk]),
+            {"amount_paid": "", "payment_method": ""},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("agenda:appointment_detail", args=[appointment.pk]),
+        )
+        appointment.refresh_from_db()
+        self.assertIsNone(appointment.amount_paid)
+        self.assertEqual(appointment.payment_method, "")
+        self.assertEqual(appointment.payment_status_key, "unregistered")
+        self.assertEqual(appointment.payment_status_label, "Sin registrar")
+
+    def test_payment_action_is_scoped_and_post_only(self):
+        appointment = self._appointment(day=self.future_day, hour=10)
+        other_appointment = self._appointment(
+            day=self.future_day,
+            hour=10,
+            business=self.business_b,
+            client=self.client_b,
+            service=self.service_b,
+        )
+
+        get_response = self.client.get(reverse("agenda:appointment_payment", args=[appointment.pk]))
+        other_response = self.client.post(
+            reverse("agenda:appointment_payment", args=[other_appointment.pk]),
+            {"amount_paid": "1000", "payment_method": Appointment.PAYMENT_METHOD_CASH},
+        )
+
+        self.assertEqual(get_response.status_code, 405)
+        self.assertEqual(other_response.status_code, 404)
+        other_appointment.refresh_from_db()
+        self.assertIsNone(other_appointment.amount_paid)
+
+    def test_payment_status_for_zero_amount_and_missing_price(self):
+        appointment = Appointment(
+            price=None,
+            amount_paid=Decimal("0.00"),
+        )
+        self.assertEqual(appointment.payment_status_key, "pending")
+        self.assertEqual(appointment.payment_status_label, "Pendiente")
+
+        appointment.amount_paid = Decimal("1000.00")
+        self.assertEqual(appointment.payment_status_key, "deposit")
+
+        appointment.amount_paid = None
+        self.assertEqual(appointment.payment_status_key, "unregistered")
+
+
 class IncomeTests(AgendaTestBase):
     def setUp(self):
         super().setUp()
@@ -928,3 +1224,52 @@ class IncomeTests(AgendaTestBase):
                 )
 
                 self.assertEqual(response.status_code, 200)
+
+    def test_income_reports_collected_and_pending_amounts(self):
+        self._appointment(
+            day=self.today,
+            hour=9,
+            status=Appointment.STATUS_COMPLETED,
+            price=Decimal("10000.00"),
+            amount_paid=Decimal("6000.00"),
+            payment_method=Appointment.PAYMENT_METHOD_TRANSFER,
+        )
+        self._appointment(
+            day=self.today,
+            hour=11,
+            status=Appointment.STATUS_COMPLETED,
+            price=Decimal("8000.00"),
+            amount_paid=Decimal("8000.00"),
+            payment_method=Appointment.PAYMENT_METHOD_CASH,
+        )
+        self._appointment(
+            day=self.today,
+            hour=13,
+            status=Appointment.STATUS_COMPLETED,
+            price=None,
+            amount_paid=Decimal("2000.00"),
+            payment_method=Appointment.PAYMENT_METHOD_OTHER,
+        )
+        self._appointment(
+            day=self.today,
+            hour=15,
+            status=Appointment.STATUS_CANCELLED,
+            price=Decimal("5000.00"),
+            amount_paid=Decimal("5000.00"),
+            payment_method=Appointment.PAYMENT_METHOD_CASH,
+        )
+
+        response = self.client.get(reverse("agenda:income"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["collected_total"], Decimal("16000.00"))
+        self.assertEqual(
+            response.context["pending_collection_total"],
+            Decimal("4000.00"),
+        )
+        self.assertContains(response, "Cobrado")
+        self.assertContains(response, "Por cobrar")
+        self.assertContains(response, "$16.000")
+        self.assertContains(response, "$4.000")
+        self.assertContains(response, "Transferencia")
+        self.assertContains(response, "Sin precio")
