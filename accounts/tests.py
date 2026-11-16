@@ -224,6 +224,15 @@ class PasswordResetTests(TestCase):
         self.assertIn("http://testserver/cuenta/recuperar/", message.body)
         self.assertIn("24 horas", message.body)
 
+    def test_password_reset_email_uses_https_on_secure_requests(self):
+        self.client.post(
+            self.reset_url,
+            {"email": self.user.email},
+            secure=True,
+        )
+
+        self.assertIn("https://testserver/cuenta/recuperar/", mail.outbox[0].body)
+
     def test_password_reset_does_not_reveal_unknown_email(self):
         response = self._request_reset("nadie@example.com")
 
